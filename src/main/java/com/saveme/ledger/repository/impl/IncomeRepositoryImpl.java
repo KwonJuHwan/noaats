@@ -13,13 +13,28 @@ public class IncomeRepositoryImpl implements IncomeRepositoryCustom {
 
     @Override
     public Long sumAmountByMemberIdAndDateBetween(Long memberId, LocalDate startDate, LocalDate endDate) {
-        return queryFactory
+        // 1. 비정기 수입
+        Long irregularSum = queryFactory
             .select(income.amount.sum().coalesce(0L))
             .from(income)
             .where(
                 income.member.id.eq(memberId),
+                income.isRegular.isFalse(),
                 income.date.between(startDate, endDate)
             )
             .fetchOne();
+
+        // 2. 정기 수입
+        Long regularSum = queryFactory
+            .select(income.amount.sum().coalesce(0L))
+            .from(income)
+            .where(
+                income.member.id.eq(memberId),
+                income.isRegular.isTrue()
+            )
+            .fetchOne();
+
+        // 3. 두 합계 더하기
+        return irregularSum + regularSum;
     }
 }
