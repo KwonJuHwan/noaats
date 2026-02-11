@@ -6,7 +6,10 @@ import com.saveme.ledger.dto.response.ExpenseDetailResponseDto;
 import com.saveme.ledger.repository.CategoryRepository;
 import com.saveme.ledger.service.command.FixedCostCommandService;
 import com.saveme.ledger.service.process.ExpenseProcessService;
+import com.saveme.ledger.service.query.CategoryQueryService;
 import com.saveme.ledger.service.query.ExpenseQueryService;
+import com.saveme.ledger.service.query.FixedCostQueryService;
+import com.saveme.ledger.service.query.IncomeQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
@@ -22,47 +25,42 @@ import java.util.List;
 @RequiredArgsConstructor
 public class LedgerController {
 
+    private final IncomeQueryService incomeQueryService;
     private final ExpenseQueryService expenseQueryService;
-    private final ExpenseProcessService expenseProcessService;
-    private final FixedCostCommandService fixedCostCommandService;
-    private final CategoryRepository categoryRepository;
+    private final FixedCostQueryService fixedCostQueryService;
+    private final CategoryQueryService categoryQueryService;
 
-    private static final Long MEMBER_ID = 1L; // 단일 사용자 노아
+    private static final Long MEMBER_ID = 1L;
 
-    /**
-     * [메인] 캘린더 대시보드
-     */
     @GetMapping
     public String mainDashboard(@RequestParam(required = false) String yearMonth, Model model) {
-        String targetMonth = (yearMonth == null) ? YearMonth.now().toString() : yearMonth;
+        YearMonth viewedMonth = (yearMonth == null) ? YearMonth.now() : YearMonth.parse(yearMonth);
 
-        int daysInMonth = YearMonth.parse(targetMonth).lengthOfMonth();
+        String currentMonthStr = viewedMonth.toString();
+        LocalDate firstDayOfMonth = viewedMonth.atDay(1);
 
-        model.addAttribute("currentMonth", targetMonth);
-        model.addAttribute("prevMonth", YearMonth.parse(targetMonth).minusMonths(1).toString());
-        model.addAttribute("nextMonth", YearMonth.parse(targetMonth).plusMonths(1).toString());
+        Long totalIncome = incomeQueryService.getMonthlyIncomeTotal(MEMBER_ID, firstDayOfMonth);
+        Long totalFixedCost = fixedCostQueryService.getTotalFixedCost(MEMBER_ID);
+        Long totalGeneralExpense = expenseQueryService.getMonthlyExpenseTotal(MEMBER_ID, firstDayOfMonth);
+        Long totalExpense = totalFixedCost + totalGeneralExpense;
 
-        model.addAttribute("daysInMonth", daysInMonth);
-
-        // 일별 요약 맵 (날짜별 총합 등)
-        model.addAttribute("expenseMap", expenseQueryService.getMonthlyExpenseMap(MEMBER_ID, targetMonth));
-        model.addAttribute("categories", categoryRepository.findAll());
+        model.addAttribute("currentMonth", currentMonthStr);
+        model.addAttribute("prevMonth", viewedMonth.minusMonths(1).toString());
+        model.addAttribute("nextMonth", viewedMonth.plusMonths(1).toString());
+        model.addAttribute("daysInMonth", viewedMonth.lengthOfMonth());
+        model.addAttribute("expenseMap", expenseQueryService.getMonthlyExpenseMap(MEMBER_ID, currentMonthStr));
+        model.addAttribute("totalIncome", totalIncome);
+        model.addAttribute("totalFixedCost", totalFixedCost);
+        model.addAttribute("totalGeneralExpense", totalGeneralExpense);
+        model.addAttribute("totalExpense", totalExpense);
+        model.addAttribute("balance", totalIncome - totalExpense);
+        model.addAttribute("rootCategories", categoryQueryService.getRootCategories());
 
         return "ledger/main";
     }
 
     /**
-     * [1. 고정 지출] 관리 화면
-     */
-    @GetMapping("/fixed-costs")
-    public String fixedCostList(Model model) {
-        model.addAttribute("fixedCosts", fixedCostCommandService.getFixedCosts(MEMBER_ID));
-        model.addAttribute("categories", categoryRepository.findAll());
-        return "ledger/fixed-costs";
-    }
-
-    /**
-     * [2. 냉장고] 화면 (Placeholder)
+     * 현재 미구현
      */
     @GetMapping("/fridge")
     public String fridge() {
@@ -70,59 +68,12 @@ public class LedgerController {
     }
 
     /**
-     * [3. 통계] 화면
+     * 현재 미구현
      */
     @GetMapping("/statistics")
     public String statistics() {
         return "ledger/statistics";
     }
 
-    // --- 지출(Expense) CRUD ---
 
-    @PostMapping("/expenses/register")
-    public String registerExpense(@ModelAttribute ExpenseRequestDto request) {
-        expenseProcessService.registerExpense(MEMBER_ID, request);
-        return "redirect:/";
-    }
-
-    @PostMapping("/expenses/update/{id}") // 지출 수정 추가
-    public String updateExpense(@PathVariable Long id, @ModelAttribute ExpenseRequestDto request) {
-        System.out.println("수정할 지출 ID: " + id);
-        expenseProcessService.updateExpense(id, request);
-        return "redirect:/";
-    }
-
-    @PostMapping("/expenses/delete/{id}")
-    public String deleteExpense(@PathVariable Long id) {
-        expenseProcessService.deleteExpense(id);
-        return "redirect:/";
-    }
-    /**
-     * [AJAX] 캘린더 일별 상세보기 데이터 조회
-     */
-    @GetMapping("/api/expenses/daily")
-    @ResponseBody
-    public List<ExpenseDetailResponseDto> getDailyDetail(@RequestParam String date) {
-        return expenseQueryService.getDailyExpenses(MEMBER_ID, LocalDate.parse(date));
-    }
-
-    // --- 고정 지출(FixedCost) CRUD ---
-
-    @PostMapping("/fixed-costs/register") // 고정 지출 등록 추가
-    public String registerFixedCost(@ModelAttribute FixedCostRequestDto request) {
-        fixedCostCommandService.registerFixedCost(MEMBER_ID, request);
-        return "redirect:/fixed-costs";
-    }
-
-    @PostMapping("/fixed-costs/update/{id}") // 고정 지출 수정 추가
-    public String updateFixedCost(@PathVariable Long id, @ModelAttribute FixedCostRequestDto request) {
-        fixedCostCommandService.updateFixedCost(id, request);
-        return "redirect:/fixed-costs";
-    }
-
-    @PostMapping("/fixed-costs/delete/{id}") // 고정 지출 삭제 추가
-    public String deleteFixedCost(@PathVariable Long id) {
-        fixedCostCommandService.deleteFixedCost(id);
-        return "redirect:/fixed-costs";
-    }
 }
