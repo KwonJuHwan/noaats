@@ -43,10 +43,25 @@ public class Income {
         this.date = date;
         this.isRegular = (isRegular != null) ? isRegular : false;
     }
+
+    public void update(Long amount, IncomeType incomeType, LocalDate date, Boolean isRegular) {
+        this.amount = amount;
+        this.incomeType = incomeType;
+        this.date= date;
+        this.isRegular = isRegular;
+    }
+
+    @Getter
     public enum IncomeType {
-        SALARY("월급"), BONUS("상여금"), POCKET_MONEY("용돈"), ETC("기타");
+        SALARY("월급"),
+        BONUS("상여금"),
+        POCKET_MONEY("용돈"),
+        ETC("기타");
 
         private final String description;
-        IncomeType(String description) { this.description = description; }
+
+        IncomeType(String description) {
+            this.description = description;
+        }
     }
 }
