@@ -13,7 +13,8 @@
   <div class="card mb-4 border-primary">
     <div class="card-body">
       <h5 id="fixedFormTitle">새 고정 지출 등록</h5>
-      <form id="fixedForm" th:action="@{/fixed-costs/register}" method="post" class="row g-2 align-items-end">
+      <form id="fixedForm" th:action="@{/fixed-costs/register}" method="post"
+            class="row g-2 align-items-end" onsubmit="return validateFixedCost()">
 
         <div class="col-md-3">
           <label class="form-label small text-muted">항목명</label>
@@ -184,6 +185,31 @@
 
     document.getElementById('fixedForm').action = "/fixed-costs/register";
   }
+
+  function validateFixedCost() {
+    const amountInput = document.getElementById('fixedAmount');
+    const amount = Number(amountInput.value);
+
+    const dayInput = document.getElementById('fixedDay');
+    const day = Number(dayInput.value);
+
+    // 금액 검증
+    if (amount <= 0) {
+      alert("금액은 1원 이상이어야 합니다.");
+      amountInput.focus();
+      return false;
+    }
+
+    // 날짜 검증
+    if (day < 1 || day > 31) {
+      alert("결제일은 1일에서 31일 사이여야 합니다.");
+      dayInput.focus();
+      return false;
+    }
+
+    return true;
+  }
+
 </script>
 </body>
 </html>
