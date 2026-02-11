@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>SaveME - 노아의 가계부</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background-color: #dee2e6; }
+    .calendar-day { min-height: 120px; background-color: white; padding: 8px; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; }
+    .calendar-day:hover { background-color: #f8f9fa; }
+    .day-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .day-number { font-weight: bold; }
+    .expense-info { text-align: right; }
+    .expense-total { font-size: 0.9rem; color: #dc3545; font-weight: bold; margin-bottom: 2px; }
+    .top-category { font-size: 0.7rem; color: #6c757d; background: #f1f3f5; padding: 2px 4px; border-radius: 4px; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .expense-count { font-size: 0.7rem; color: #adb5bd;}
+    .summary-card { cursor: pointer; transition: 0.2s; border: none; }
+    .summary-card:hover { transform: translateY(-3px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .detail-item { font-size: 0.95rem; }
+  </style>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-dark bg-primary mb-4">
+  <div class="container">
+    <span class="navbar-brand mb-0 h1">SaveME DashBoard</span>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="row mb-4">
+    <div class="col-md-12 text-center">
+      <a th:href="@{/fixed-costs}" class="btn btn-outline-primary mx-2">🏠 고정 지출</a>
+      <a th:href="@{/incomes}" class="btn btn-outline-success mx-2">💰 수입 관리</a>
+      <a th:href="@{/fridge}" class="btn btn-outline-success mx-2">🧊 냉장고</a>
+      <a th:href="@{/statistics}" class="btn btn-outline-info mx-2">📊 통계</a>
+    </div>
+  </div>
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <a th:href="@{/(yearMonth=${prevMonth})}" class="btn btn-sm btn-secondary">&lt; 이전달</a>
+    <h2 th:text="${currentMonth}">2026-02</h2>
+    <a th:href="@{/(yearMonth=${nextMonth})}" class="btn btn-sm btn-secondary">다음달 &gt;</a>
+  </div>
+  <div class="row mb-4 justify-content-center">
+    <div class="col-md-8">
+      <div class="card summary-card bg-white shadow-sm"
+           data-bs-toggle="collapse"
+           data-bs-target="#budgetDetails"
+           aria-expanded="false">
+        <div class="card-body text-center">
+          <p class="text-muted mb-1">이번 달 남은 예산</p>
+          <h2 class="fw-bold text-primary"
+              th:text="${#numbers.formatInteger(balance, 0, 'COMMA')} + '원'">
+            500,000원
+          </h2>
+          <small class="text-secondary">클릭해서 상세 내역 확인 ▼</small>
+        </div>
+      </div>
+
+      <div class="collapse mt-2" id="budgetDetails">
+        <div class="card card-body border-0 shadow-sm bg-white">
+          <div class="d-flex justify-content-between detail-item mb-2">
+            <span>💰 이번 달 총 수입</span>
+            <span class="text-success fw-bold" th:text="'+ ' + ${#numbers.formatInteger(totalIncome, 0, 'COMMA')} + '원'"></span>
+          </div>
+          <div class="d-flex justify-content-between detail-item mb-2">
+            <span>🏠 고정 지출 합계</span>
+            <span class="text-danger fw-bold" th:text="'- ' + ${#numbers.formatInteger(totalFixedCost, 0, 'COMMA')} + '원'"></span>
+          </div>
+          <div class="d-flex justify-content-between detail-item mb-2">
+            <span>💸 일반 지출 합계</span>
+            <span class="text-danger fw-bold" th:text="'- ' + ${#numbers.formatInteger(totalGeneralExpense, 0, 'COMMA')} + '원'"></span>
+          </div>
+          <hr class="my-2">
+          <div class="d-flex justify-content-between detail-item">
+            <strong>총 지출액</strong>
+            <strong class="text-dark" th:text="${#numbers.formatInteger(totalExpense, 0, 'COMMA')} + '원'"></strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="calendar-grid">
+      <div class="text-center bg-white p-2 text-danger fw-bold">일</div>
+      <div class="text-center bg-white p-2 fw-bold">월</div>
+      <div class="text-center bg-white p-2 fw-bold">화</div>
+      <div class="text-center bg-white p-2 fw-bold">수</div>
+      <div class="text-center bg-white p-2 fw-bold">목</div>
+      <div class="text-center bg-white p-2 fw-bold">금</div>
+      <div class="text-center bg-white p-2 text-primary fw-bold">토</div>
+
+      <div th:each="day : ${#numbers.sequence(1, daysInMonth)}"
+           class="calendar-day"
+           th:with="dateStr=${currentMonth + '-' + #numbers.formatInteger(day,2)},
+                      summary=${expenseMap.get(T(java.time.LocalDate).parse(dateStr))}"
+           th:onclick="openDetail([[${dateStr}]])">
+
+        <div class="day-header">
+          <span class="day-number" th:text="${day}">1</span>
+          <span class="expense-count" th:if="${summary != null}" th:text="${summary.expenseCount + '건'}">1건</span>
+        </div>
+
+        <div class="expense-info" th:if="${summary != null}">
+          <div class="expense-total">
+            <span th:text="'-' + ${#numbers.formatInteger(summary.dailyTotal, 0, 'COMMA')} + '원'"></span>
+          </div>
+          <div class="top-category">
+            <span th:text="${summary.topCategoryName}">식비</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="detailModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="modalDate">지출 내역</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <h6>지출 내역</h6>
+        <ul id="expenseList" class="list-group mb-4">
+        </ul>
+
+        <hr>
+
+        <h6 id="formTitle">지출 추가</h6>
+        <form id="expenseForm" th:action="@{/expenses/register}" method="post">
+          <input type="hidden" name="expenseId" id="editExpenseId">
+          <input type="hidden" name="spentAt" id="formDate">
+
+          <div class="mb-2">
+            <input type="number" name="amount" id="formAmount" class="form-control" placeholder="금액" required>
+          </div>
+          <div class="mb-2">
+            <input type="text" name="memo" id="formMemo" class="form-control" placeholder="내용(장소)">
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label">카테고리</label>
+            <div class="d-flex gap-2">
+              <select id="parentCategory" class="form-select" onchange="loadChildCategories(this.value)" required>
+                <option value="">-- 대분류 --</option>
+                <option th:each="cat : ${rootCategories}"
+                        th:value="${cat.id}"
+                        th:text="${cat.name}">
+                </option>
+              </select>
+
+              <select name="categoryId" id="childCategory" class="form-select" style="display:none;">
+                <option value="">-- 소분류 --</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100" id="submitBtn">저장하기</button>
+          <button type="button" class="btn btn-secondary w-100 mt-1" onclick="resetForm()" id="cancelEditBtn" style="display:none;">수정 취소</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+
+  // 1. 소분류 불러오기 함수
+  async function loadChildCategories(parentId, selectedChildId = null) {
+    const childSelect = document.getElementById('childCategory');
+    const parentSelect = document.getElementById('parentCategory');
+
+    if (!parentId) {
+      childSelect.style.display = 'none';
+      childSelect.innerHTML = '<option value="">-- 소분류 --</option>';
+      // 대분류 미선택 시 name 속성 제거 (submit 방지)
+      childSelect.removeAttribute('name');
+      parentSelect.removeAttribute('name');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/categories/${parentId}`);
+      if (!response.ok) throw new Error("카테고리 로딩 실패");
+
+      const children = await response.json();
+
+      if (children.length > 0) {
+        // 소분류가 있는 경우
+        let options = '<option value="">-- 소분류 --</option>';
+        children.forEach(cat => {
+          // 수정 모드일 때 선택값 세팅
+          const isSelected = (selectedChildId && String(cat.id) === String(selectedChildId)) ? 'selected' : '';
+          options += `<option value="${cat.id}" ${isSelected}>${cat.name}</option>`;
+        });
+
+        childSelect.innerHTML = options;
+        childSelect.style.display = 'block';
+        childSelect.required = true;
+
+        // 폼 전송 시 소분류 ID가 'categoryId'로 전송됨
+        childSelect.setAttribute('name', 'categoryId');
+        parentSelect.removeAttribute('name');
+      } else {
+        // 소분류가 없는 경우 (대분류가 곧 카테고리)
+        childSelect.style.display = 'none';
+        childSelect.required = false;
+        childSelect.removeAttribute('name');
+
+        // 대분류 ID가 'categoryId'로 전송됨
+        parentSelect.setAttribute('name', 'categoryId');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('하위 카테고리를 불러오지 못했습니다.');
+    }
+  }
+
+  // 2. 상세 모달 열기
+  async function openDetail(date) {
+    document.getElementById('modalDate').innerText = date + ' 지출 내역';
+    document.getElementById('formDate').value = date + 'T12:00:00';
+    resetForm();
+
+    const response = await fetch(`/api/expenses/daily?date=${date}`);
+    const expenses = await response.json();
+
+    const listContainer = document.getElementById('expenseList');
+    listContainer.innerHTML = '';
+
+    if (expenses.length === 0) {
+      listContainer.innerHTML = '<li class="list-group-item text-muted">내역이 없습니다.</li>';
+    }
+
+    expenses.forEach(ex => {
+      // API에서 ex.parentId를 꼭 보내줘야 함! (없으면 null)
+      const parentId = ex.parentId || '';
+
+      const li = document.createElement('li');
+      li.className = 'list-group-item d-flex justify-content-between align-items-center';
+
+      // [수정됨] 버튼에 data-* 속성으로 ID들 심기
+      // onclick 시 this를 넘겨줌
+      li.innerHTML = `
+                <div>
+                    <span class="badge bg-secondary me-2">${ex.categoryName}</span>
+                    <span>${ex.memo}</span>
+                    <strong class="ms-2">${ex.amount.toLocaleString()}원</strong>
+                </div>
+                <div>
+                    <button class="btn btn-sm btn-outline-warning"
+                            data-parent-id="${parentId}"
+                            data-child-id="${ex.categoryId}"
+                            onclick="editMode(this, ${ex.expenseId}, ${ex.amount}, '${ex.memo}')">수정</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteExpense(${ex.expenseId})">삭제</button>
+                </div>
+            `;
+      listContainer.appendChild(li);
+    });
+
+    const modal = new bootstrap.Modal(document.getElementById('detailModal'));
+    modal.show();
+  }
+
+  // 3. 수정 모드 진입 (async로 변경)
+  async function editMode(btn, id, amount, memo) {
+    // 버튼의 dataset에서 값 추출
+    const parentId = btn.dataset.parentId;
+    const childId = btn.dataset.childId;
+
+    document.getElementById('formTitle').innerText = "지출 수정";
+    document.getElementById('editExpenseId').value = id;
+    document.getElementById('formAmount').value = amount;
+    document.getElementById('formMemo').value = memo;
+
+    // 대분류 세팅
+    if (parentId) {
+      document.getElementById('parentCategory').value = parentId;
+      // 대분류에 맞는 소분류 로드 및 값 세팅 (await 필수)
+      await loadChildCategories(parentId, childId);
+    } else {
+      // 대분류 정보가 없거나 루트인 경우 (상황에 따라 다름)
+      // 만약 카테고리가 1단계뿐이라면 childId가 곧 루트 카테고리 ID일 수 있음
+      document.getElementById('parentCategory').value = childId;
+      await loadChildCategories(childId); // 자식이 있는지 확인
+    }
+
+    document.getElementById('submitBtn').innerText = "수정 완료";
+    document.getElementById('submitBtn').className = "btn btn-warning w-100";
+    document.getElementById('cancelEditBtn').style.display = "block";
+
+    document.getElementById('expenseForm').action = "/expenses/update/" + id;
+  }
+
+  // 4. 폼 초기화
+  function resetForm() {
+    document.getElementById('formTitle').innerText = "지출 추가";
+    document.getElementById('editExpenseId').value = "";
+    document.getElementById('formAmount').value = "";
+    document.getElementById('formMemo').value = "";
+
+    // 카테고리 초기화
+    document.getElementById('parentCategory').value = "";
+    document.getElementById('childCategory').style.display = 'none';
+    document.getElementById('childCategory').innerHTML = '<option value="">-- 소분류 --</option>';
+
+    document.getElementById('submitBtn').innerText = "등록하기";
+    document.getElementById('submitBtn').className = "btn btn-primary w-100";
+    document.getElementById('cancelEditBtn').style.display = "none";
+    document.getElementById('expenseForm').action = "/expenses/register";
+  }
+
+  async function deleteExpense(id) {
+    if (confirm('정말 삭제하시겠습니까?')) {
+      const response = await fetch(`/expenses/delete/${id}`, { method: 'POST' });
+      if (response.ok) location.reload();
+    }
+  }
+</script>
+</body>
+</html>
