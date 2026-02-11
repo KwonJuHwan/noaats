@@ -94,8 +94,8 @@
       <div th:each="day : ${#numbers.sequence(1, daysInMonth)}"
            class="calendar-day"
            th:with="dateStr=${currentMonth + '-' + #numbers.formatInteger(day,2)},
-                      summary=${expenseMap.get(T(java.time.LocalDate).parse(dateStr))}"
-           th:onclick="openDetail([[${dateStr}]])">
+                summary=${expenseMap.get(T(java.time.LocalDate).parse(dateStr))}"
+           th:onclick="|openDetail('${dateStr}')|">
 
         <div class="day-header">
           <span class="day-number" th:text="${day}">1</span>
