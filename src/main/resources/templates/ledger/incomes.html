@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>수입(예산) 관리</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 </head>
 <body class="bg-light">
 <div class="container mt-5">
@@ -13,7 +14,7 @@
   <div class="card mb-4 border-success">
     <div class="card-body">
       <h5 id="incomeFormTitle">새 수입 등록</h5>
-      <form id="incomeForm" th:action="@{/incomes/register}" method="post" class="row g-3">
+      <form id="incomeForm" th:action="@{/incomes/register}" method="post" class="row g-3" onsubmit="return validateIncome()">
         <div class="col-md-3">
           <select name="incomeType" id="incomeType" class="form-select" required>
             <option value="">-- 유형 --</option>
@@ -40,6 +41,18 @@
         </div>
       </form>
     </div>
+  </div>
+
+  <div class="alert alert-info shadow-sm mb-4" th:if="${not #lists.isEmpty(incomes)}">
+    <h6 class="fw-bold"><i class="bi bi-arrow-repeat"></i> 🔄 매달 자동으로 합산되는 정기 수입</h6>
+    <hr class="my-2">
+    <div class="d-flex flex-wrap gap-3">
+      <div th:each="income : ${incomes}" th:if="${income.isRegular}" class="bg-white px-3 py-1 rounded-pill border border-info">
+        <small class="text-muted" th:text="${income.incomeType}"></small>
+        <strong class="text-primary" th:text="': ' + ${#numbers.formatInteger(income.amount, 0, 'COMMA')} + '원'"></strong>
+      </div>
+    </div>
+    <small class="text-muted mt-2 d-block">* 정기 수입은 날짜와 상관없이 매월 예산에 자동으로 포함됩니다.</small>
   </div>
 
   <table class="table table-hover bg-white shadow-sm">
@@ -109,6 +122,16 @@
     document.getElementById('incomeCancelBtn').style.display = "none";
 
     document.getElementById('incomeForm').action = "/incomes/register";
+  }
+
+  // [Validation 함수]
+  function validateIncome() {
+    const amount = Number(document.getElementById('amount').value);
+    if (amount <= 0) {
+      alert("금액은 1원 이상이어야 합니다.");
+      return false; // 폼 제출 중단
+    }
+    return true; // 폼 제출 진행
   }
 </script>
 </body>
