@@ -50,6 +50,13 @@ public class FixedCost {
         this.title = title;
     }
 
+    public void update(Long amount, Integer paymentDay, String title, Category category){
+        this.amount = amount;
+        this.paymentDay = paymentDay;
+        this.title = title;
+        this.category = category;
+    }
+
     public void terminate(LocalDate endDate) {
         this.endDate = endDate;
     }
