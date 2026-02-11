@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"user_id", "year_month"})
+    @UniqueConstraint(columnNames = {"member_id", "year_month"})
 })
 public class MonthlyBudget {
 
@@ -40,7 +40,7 @@ public class MonthlyBudget {
             throw new IllegalArgumentException("예산 시작일은 1일에서 31일 사이여야 합니다.");
         }
         this.member = member;
-        this.yearMonth = yearMonth.withDayOfMonth(1);;
+        this.yearMonth = yearMonth.withDayOfMonth(1);
         this.totalIncome = totalIncome;
         this.startDay = startDay;
     }
