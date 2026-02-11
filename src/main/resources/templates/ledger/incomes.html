@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>수입(예산) 관리</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container mt-5">
+  <a href="/" class="btn btn-link">&larr; 대시보드로 돌아가기</a>
+  <h2 class="mb-4">💰 수입(예산) 관리</h2>
+
+  <div class="card mb-4 border-success">
+    <div class="card-body">
+      <h5 id="incomeFormTitle">새 수입 등록</h5>
+      <form id="incomeForm" th:action="@{/incomes/register}" method="post" class="row g-3">
+        <div class="col-md-3">
+          <select name="incomeType" id="incomeType" class="form-select" required>
+            <option value="">-- 유형 --</option>
+            <option th:each="type : ${incomeTypes}"
+                    th:value="${type}"
+                    th:text="${type.description}"></option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <input type="number" name="amount" id="amount" class="form-control" placeholder="금액" required>
+        </div>
+        <div class="col-md-3">
+          <input type="date" name="date" id="date" class="form-control" required>
+        </div>
+        <div class="col-md-3 d-flex align-items-center">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="isRegular" id="isRegular">
+            <label class="form-check-label" for="isRegular">정기 수입</label>
+          </div>
+          <button type="button" class="btn btn-sm btn-link ms-auto" onclick="resetIncomeForm()" id="incomeCancelBtn" style="display:none;">취소</button>
+        </div>
+        <div class="col-12">
+          <button type="submit" class="btn btn-success w-100" id="incomeSubmitBtn">등록</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <table class="table table-hover bg-white shadow-sm">
+    <thead class="table-success">
+    <tr>
+      <th>날짜</th>
+      <th>유형</th>
+      <th>금액</th>
+      <th>정기여부</th>
+      <th>관리</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="income : ${incomes}">
+      <td th:text="${income.date}">2024-02-11</td>
+      <td th:text="${income.incomeType}">월급</td>
+      <td th:text="${#numbers.formatInteger(income.amount, 0, 'COMMA')} + '원'">2,000,000</td>
+      <td>
+        <span th:if="${income.isRegular}" class="badge bg-info">정기</span>
+        <span th:unless="${income.isRegular}" class="badge bg-secondary">비정기</span>
+      </td>
+      <td>
+        <button type="button" class="btn btn-sm btn-warning"
+                th:data-id="${income.id}"
+                th:data-type="${income.incomeTypeKey}"
+                th:data-amount="${income.amount}"
+                th:data-date="${income.date}"
+                th:data-regular="${income.isRegular}"
+                onclick="fillIncomeForm(this)">수정</button>
+
+        <form th:action="@{/incomes/delete/{id}(id=${income.id})}" method="post" style="display:inline;">
+          <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('삭제하시겠습니까?')">삭제</button>
+        </form>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  function fillIncomeForm(btn) {
+    const id = btn.dataset.id;
+    const type = btn.dataset.type;
+    const amount = btn.dataset.amount;
+    const date = btn.dataset.date;
+    const isRegular = btn.dataset.regular === 'true';
+
+    document.getElementById('incomeFormTitle').innerText = "수입 내역 수정";
+    document.getElementById('incomeType').value = type;
+    document.getElementById('amount').value = amount;
+    document.getElementById('date').value = date;
+    document.getElementById('isRegular').checked = isRegular;
+
+    document.getElementById('incomeSubmitBtn').innerText = "수정 완료";
+    document.getElementById('incomeSubmitBtn').className = "btn btn-warning w-100";
+    document.getElementById('incomeCancelBtn').style.display = "block";
+
+    document.getElementById('incomeForm').action = "/incomes/update/" + id;
+  }
+
+  function resetIncomeForm() {
+    document.getElementById('incomeFormTitle').innerText = "새 수입 등록";
+    document.getElementById('incomeForm').reset();
+
+    document.getElementById('incomeSubmitBtn').innerText = "등록";
+    document.getElementById('incomeSubmitBtn').className = "btn btn-success w-100";
+    document.getElementById('incomeCancelBtn').style.display = "none";
+
+    document.getElementById('incomeForm').action = "/incomes/register";
+  }
+</script>
+</body>
+</html>
