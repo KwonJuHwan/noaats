@@ -26,9 +26,6 @@ public class ExpenseProcessService {
     private final MemberRepository memberRepository;
 
     public Long registerExpense(Long memberId, ExpenseRequestDto request) {
-        if (request.getSpentAt().isAfter(LocalDateTime.now())) {
-            throw new IllegalArgumentException("미래의 지출은 등록할 수 없습니다.");
-        }
 
         Member member = memberRepository.findById(memberId)
             .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
