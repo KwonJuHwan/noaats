@@ -26,18 +26,16 @@ public class Member {
     @Column(nullable = false)
     private Long defaultIncome; // 기본 월급
 
-    @Column(nullable = false, length = 50)
-    private String timezone;
 
     @CreatedDate
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
     @Builder
-    public Member(String name, Long defaultIncome, String timezone) {
+    public Member(String name, Long defaultIncome) {
         this.name = name;
         this.defaultIncome = (defaultIncome != null) ? defaultIncome : 0L;
-        this.timezone = (timezone != null) ? timezone : "Asia/Seoul";
+
     }
 
 
