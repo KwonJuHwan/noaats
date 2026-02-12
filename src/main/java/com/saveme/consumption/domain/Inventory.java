@@ -1,6 +1,7 @@
 package com.saveme.consumption.domain;
 
 
+import com.saveme.ledger.domain.Expense;
 import com.saveme.member.domain.Member;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -15,9 +16,6 @@ import java.time.LocalDate;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Inventory {
 
-    public enum Status {
-        IN_FRIDGE, CONSUMED, TRASHED
-    }
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "inventory_id")
@@ -27,9 +25,6 @@ public class Inventory {
     private String name;
 
     @Column(nullable = false)
-    private Long purchasePrice;
-
-    @Column(nullable = false)
     private LocalDate expiryDate;
 
     @Column(nullable = false)
@@ -37,27 +32,32 @@ public class Inventory {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private Status status;
+    private InventoryStatus status;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "expense_id")
+    private Expense expense;
+
     @Builder
-    public Inventory(Member member, String name, Long purchasePrice, LocalDate expiryDate, LocalDate purchaseDate) {
-        this.member = member;
+    public Inventory(String name, LocalDate purchaseDate, LocalDate expiryDate, Member member, Expense expense) {
         this.name = name;
-        this.purchasePrice = purchasePrice;
-        this.expiryDate = expiryDate;
         this.purchaseDate = purchaseDate;
-        this.status = Status.IN_FRIDGE;
+        this.expiryDate = expiryDate;
+        this.status = InventoryStatus.IN_STORE;
+        this.member = member;
+        this.expense = expense;
     }
 
-    public void consume() {
-        this.status = Status.CONSUMED;
+    public void updateInfo(String name, LocalDate expiryDate) {
+        this.name = name;
+        this.expiryDate = expiryDate;
     }
 
-    public void trash() {
-        this.status = Status.TRASHED;
+    public void changeStatus(InventoryStatus status) {
+        this.status = status;
     }
 }
