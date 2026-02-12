@@ -5,5 +5,6 @@ import java.time.LocalDate;
 
 public record ExpenseSimulationRequestDto(
     Long amount,
-    LocalDate date
+    LocalDate date,
+    Long categoryId
 ) {}
