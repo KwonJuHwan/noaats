@@ -17,7 +17,7 @@ public class IncomeCommandService {
     private final IncomeRepository incomeRepository;
     private final MemberRepository memberRepository;
 
-    public void createIncome(Long memberId, IncomeRequestDto request) {
+    public Long createIncome(Long memberId, IncomeRequestDto request) {
         Member member = memberRepository.findById(memberId)
             .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
 
@@ -29,7 +29,7 @@ public class IncomeCommandService {
             .isRegular(request.getIsRegular())
             .build();
 
-        incomeRepository.save(income);
+        return incomeRepository.save(income).getId();
     }
 
     public void updateIncome(Long incomeId, IncomeRequestDto request) {
