@@ -1,8 +1,10 @@
 package com.saveme.ledger.controller;
 
+import com.saveme.ledger.domain.OpportunityCost;
 import com.saveme.ledger.dto.request.ExpenseRequestDto;
 import com.saveme.ledger.dto.request.ExpenseSimulationRequestDto;
 import com.saveme.ledger.dto.response.ExpenseDetailResponseDto;
+import com.saveme.ledger.dto.response.ExpenseRegistrationResponseDto;
 import com.saveme.ledger.dto.response.ExpenseSimulationResponseDto;
 import com.saveme.ledger.service.process.BudgetProcessService;
 import com.saveme.ledger.service.process.ExpenseProcessService;
@@ -32,9 +34,11 @@ public class ExpenseApiController {
     private static final Long MEMBER_ID = 1L;
 
     @PostMapping
-    public ResponseEntity<Long> registerExpense(@RequestBody ExpenseRequestDto request) {
+    public ResponseEntity<ExpenseRegistrationResponseDto> registerExpense(@RequestBody ExpenseRequestDto request) {
         Long id = expenseProcessService.registerExpense(MEMBER_ID, request);
-        return ResponseEntity.ok(id);
+        String message = OpportunityCost.getMessage(request.getAmount());
+
+        return ResponseEntity.ok(new ExpenseRegistrationResponseDto(id, message));
     }
 
     @PutMapping("/{id}")
