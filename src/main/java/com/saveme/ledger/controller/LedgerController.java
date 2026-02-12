@@ -5,6 +5,8 @@ import com.saveme.consumption.dto.response.InventoryResponseDto;
 import com.saveme.consumption.service.InventoryQueryService;
 import com.saveme.ledger.domain.Income;
 import com.saveme.ledger.dto.response.BudgetDashboardResponseDto;
+import com.saveme.ledger.dto.response.StatisticsViewResponseDto;
+import com.saveme.ledger.service.process.StatisticsProcessService;
 import com.saveme.ledger.service.query.BudgetQueryService;
 import com.saveme.ledger.service.query.CategoryQueryService;
 import com.saveme.ledger.service.query.ExpenseQueryService;
@@ -27,6 +29,7 @@ public class LedgerController {
     private final InventoryQueryService inventoryQueryService;
     private final FixedCostQueryService fixedCostQueryService;
     private final IncomeQueryService incomeQueryService;
+    private final StatisticsProcessService statisticsProcessService;
 
     private static final Long MEMBER_ID = 1L;
 
@@ -64,7 +67,13 @@ public class LedgerController {
     }
 
     @GetMapping("/statistics")
-    public String statistics() {
+    public String viewStatistics(
+        @RequestParam(required = false) String yearMonth,
+        Model model
+    ) {
+        StatisticsViewResponseDto view = statisticsProcessService.getStatisticsView(MEMBER_ID, yearMonth);
+        model.addAttribute("view", view);
+
         return "ledger/statistics";
     }
 
