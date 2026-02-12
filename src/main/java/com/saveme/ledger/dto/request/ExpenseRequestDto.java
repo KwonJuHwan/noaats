@@ -19,8 +19,8 @@ public class ExpenseRequestDto {
     @NotNull
     private Long categoryId;
     private String memo;
-
     // 식재료 정보
+    @NotNull
     private String ingredientName;
     private LocalDate expiryDate;
 

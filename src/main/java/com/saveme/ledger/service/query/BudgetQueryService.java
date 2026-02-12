@@ -2,10 +2,13 @@ package com.saveme.ledger.service.query;
 
 import com.saveme.consumption.domain.InventoryStatus;
 import com.saveme.consumption.repository.InventoryRepository;
+import com.saveme.global.error.ErrorCode;
+import com.saveme.global.error.exception.BusinessException;
 import com.saveme.ledger.service.logic.BudgetCalculator;
 import com.saveme.ledger.domain.enums.BudgetLifecycleStatus;
 import com.saveme.ledger.dto.response.BudgetDashboardResponseDto;
 import com.saveme.ledger.repository.ExpenseRepository;
+import java.time.format.DateTimeParseException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +29,12 @@ public class BudgetQueryService {
     private final BudgetCalculator calculator;
 
     public BudgetDashboardResponseDto getDashboardData(Long memberId, String yearMonthStr) {
-        YearMonth viewedMonth = (yearMonthStr == null) ? YearMonth.now() : YearMonth.parse(yearMonthStr);
+        YearMonth viewedMonth;
+        try {
+            viewedMonth = (yearMonthStr == null) ? YearMonth.now() : YearMonth.parse(yearMonthStr);
+        } catch (DateTimeParseException e) {
+            throw new BusinessException(ErrorCode.INVALID_DATE_FORMAT);
+        }
         YearMonth currentMonth = YearMonth.now();
         LocalDate today = LocalDate.now();
 

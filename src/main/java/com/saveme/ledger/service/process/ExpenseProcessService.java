@@ -3,6 +3,8 @@ package com.saveme.ledger.service.process;
 import com.saveme.consumption.domain.Inventory;
 import com.saveme.consumption.repository.InventoryRepository;
 import com.saveme.consumption.service.InventoryCommandService;
+import com.saveme.global.error.ErrorCode;
+import com.saveme.global.error.exception.BusinessException;
 import com.saveme.ledger.domain.Category;
 import com.saveme.ledger.domain.Expense;
 import com.saveme.ledger.dto.request.ExpenseRequestDto;
@@ -14,8 +16,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -23,18 +23,17 @@ public class ExpenseProcessService {
 
     private final ExpenseRepository expenseRepository;
     private final CategoryRepository categoryRepository;
-    private final InventoryRepository inventoryRepository;
     private final MemberRepository memberRepository;
     private final InventoryCommandService inventoryCommandService;
 
     public Long registerExpense(Long memberId, ExpenseRequestDto request) {
 
         Member member = memberRepository.findById(memberId)
-            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+            .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
         Category category = categoryRepository.findById(request.getCategoryId())
             .orElseGet(() -> categoryRepository.findByNameAndParentIsNull("기타")
-                .orElseThrow(() -> new IllegalStateException("기본 카테고리 설정 오류")));
+                .orElseThrow(() -> new BusinessException(ErrorCode.DEFAULT_CATEGORY_ERROR)));
 
         Expense expense = Expense.builder()
             .member(member)
@@ -57,17 +56,17 @@ public class ExpenseProcessService {
 
     public void updateExpense(Long expenseId, ExpenseRequestDto request) {
         Expense expense = expenseRepository.findById(expenseId)
-            .orElseThrow(() -> new IllegalArgumentException("지출 내역을 찾을 수 없습니다."));
+            .orElseThrow(() -> new BusinessException(ErrorCode.EXPENSE_NOT_FOUND));
 
         Category category = categoryRepository.findById(request.getCategoryId())
-            .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
+            .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
 
         expense.modifyExpense(request.getAmount(), request.getMemo(), category);
     }
 
     public void deleteExpense(Long expenseId) {
         Expense expense = expenseRepository.findById(expenseId)
-            .orElseThrow(() -> new IllegalArgumentException("지출 내역을 찾을 수 없습니다."));
+            .orElseThrow(() -> new BusinessException(ErrorCode.EXPENSE_NOT_FOUND));
         expenseRepository.delete(expense);
     }
 }

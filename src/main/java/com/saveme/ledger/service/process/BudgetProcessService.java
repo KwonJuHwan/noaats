@@ -2,6 +2,8 @@ package com.saveme.ledger.service.process;
 
 
 
+import com.saveme.global.error.ErrorCode;
+import com.saveme.global.error.exception.BusinessException;
 import com.saveme.ledger.service.logic.FridgeWarningPolicy;
 import com.saveme.ledger.domain.Category;
 import com.saveme.ledger.dto.request.ExpenseSimulationRequestDto;
@@ -30,7 +32,8 @@ public class BudgetProcessService {
         // 데이터 준비
         BudgetDashboardResponseDto currentStatus = budgetQueryService.getDashboardData(
             memberId, YearMonth.from(request.date()).toString());
-        Category category = categoryRepository.findById(request.categoryId()).orElse(null);
+        Category category = categoryRepository.findById(request.categoryId())
+            .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
 
         // 예산 시뮬레이션 계산
         long spendingAmount = request.amount();

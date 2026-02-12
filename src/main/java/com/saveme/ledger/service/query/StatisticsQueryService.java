@@ -48,6 +48,6 @@ public class StatisticsQueryService {
                 );
             })
             .sorted(Comparator.comparing(CategoryStatisticResponseDto::totalAmount).reversed())
-            .collect(Collectors.toList());
+            .toList();
     }
 }

@@ -1,5 +1,7 @@
 package com.saveme.ledger.service.command;
 
+import com.saveme.global.error.ErrorCode;
+import com.saveme.global.error.exception.BusinessException;
 import com.saveme.ledger.domain.Income;
 import com.saveme.ledger.dto.request.IncomeRequestDto;
 import com.saveme.ledger.repository.IncomeRepository;
@@ -19,7 +21,7 @@ public class IncomeCommandService {
 
     public Long createIncome(Long memberId, IncomeRequestDto request) {
         Member member = memberRepository.findById(memberId)
-            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+            .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
         Income income = Income.builder()
             .member(member)
@@ -34,7 +36,7 @@ public class IncomeCommandService {
 
     public void updateIncome(Long incomeId, IncomeRequestDto request) {
         Income income = incomeRepository.findById(incomeId)
-            .orElseThrow(() -> new IllegalArgumentException("수입 내역이 없습니다."));
+            .orElseThrow(() ->  new BusinessException(ErrorCode.INCOME_NOT_FOUND));
 
         income.update(request.getAmount(), request.getIncomeType(), request.getDate(), request.getIsRegular());
     }

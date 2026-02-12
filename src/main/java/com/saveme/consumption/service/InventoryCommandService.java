@@ -4,6 +4,8 @@ import com.saveme.consumption.domain.Inventory;
 import com.saveme.consumption.domain.InventoryStatus;
 import com.saveme.consumption.dto.request.InventoryUpdateDto;
 import com.saveme.consumption.repository.InventoryRepository;
+import com.saveme.global.error.ErrorCode;
+import com.saveme.global.error.exception.BusinessException;
 import com.saveme.ledger.domain.Expense;
 import com.saveme.member.domain.Member;
 import java.time.LocalDate;
@@ -33,13 +35,13 @@ public class InventoryCommandService {
 
     public void updateInventory(Long inventoryId, InventoryUpdateDto dto) {
         Inventory inventory = inventoryRepository.findById(inventoryId)
-            .orElseThrow(() -> new IllegalArgumentException("재료 없음"));
+            .orElseThrow(() -> new BusinessException(ErrorCode.INVENTORY_NOT_FOUND));
         inventory.updateInfo(dto.name(), dto.expiryDate());
     }
 
     public void changeStatus(Long inventoryId, InventoryStatus status) {
         Inventory inventory = inventoryRepository.findById(inventoryId)
-            .orElseThrow(() -> new IllegalArgumentException("재료 없음"));
+            .orElseThrow(() -> new BusinessException(ErrorCode.INVENTORY_NOT_FOUND));
         inventory.changeStatus(status);
     }
 

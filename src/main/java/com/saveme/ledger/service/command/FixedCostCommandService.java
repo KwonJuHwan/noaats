@@ -1,6 +1,8 @@
 package com.saveme.ledger.service.command;
 
 
+import com.saveme.global.error.ErrorCode;
+import com.saveme.global.error.exception.BusinessException;
 import com.saveme.ledger.domain.Category;
 import com.saveme.ledger.domain.FixedCost;
 import com.saveme.ledger.dto.request.FixedCostRequestDto;
@@ -23,10 +25,10 @@ public class FixedCostCommandService {
 
     public Long registerFixedCost(Long memberId, FixedCostRequestDto request) {
         Member member = memberRepository.findById(memberId)
-            .orElseThrow(() -> new IllegalArgumentException("회원 없음"));
+            .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
         Category category = categoryRepository.findById(request.getCategoryId())
-            .orElseThrow(() -> new IllegalArgumentException("카테고리 없음"));
+            .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
 
         validatePaymentDay(request.getPaymentDay());
 
@@ -43,10 +45,10 @@ public class FixedCostCommandService {
 
     public void updateFixedCost(Long fixedCostId, FixedCostRequestDto request) {
         FixedCost fixedCost = fixedCostRepository.findById(fixedCostId)
-            .orElseThrow(() -> new IllegalArgumentException("고정 지출 정보를 찾을 수 없습니다."));
+            .orElseThrow(() -> new BusinessException(ErrorCode.FIXED_COST_NOT_FOUND));
 
         Category category = categoryRepository.findById(request.getCategoryId())
-            .orElseThrow(() -> new IllegalArgumentException("카테고리 없음"));
+            .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
 
         validatePaymentDay(request.getPaymentDay());
 
@@ -59,7 +61,7 @@ public class FixedCostCommandService {
 
     private void validatePaymentDay(Integer day) {
         if (day < 1 || day > 31) {
-            throw new IllegalArgumentException("결제일은 1~31일 사이여야 합니다.");
+            throw  new BusinessException(ErrorCode.INVALID_PAYMENT_DAY);
         }
     }
 
