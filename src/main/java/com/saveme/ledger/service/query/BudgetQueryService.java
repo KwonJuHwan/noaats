@@ -2,6 +2,8 @@ package com.saveme.ledger.service.query;
 
 import com.saveme.consumption.domain.InventoryStatus;
 import com.saveme.consumption.repository.InventoryRepository;
+import com.saveme.ledger.service.logic.BudgetCalculator;
+import com.saveme.ledger.domain.enums.BudgetLifecycleStatus;
 import com.saveme.ledger.dto.response.BudgetDashboardResponseDto;
 import com.saveme.ledger.repository.ExpenseRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,66 +23,26 @@ public class BudgetQueryService {
     private final ExpenseQueryService expenseQueryService;
     private final ExpenseRepository expenseRepository;
     private final InventoryRepository inventoryRepository;
-
+    private final BudgetCalculator calculator;
 
     public BudgetDashboardResponseDto getDashboardData(Long memberId, String yearMonthStr) {
         YearMonth viewedMonth = (yearMonthStr == null) ? YearMonth.now() : YearMonth.parse(yearMonthStr);
         YearMonth currentMonth = YearMonth.now();
         LocalDate today = LocalDate.now();
-        LocalDate firstDayOfMonth = viewedMonth.atDay(1);
 
-        Long totalIncome = incomeQueryService.getMonthlyIncomeTotal(memberId, firstDayOfMonth);
+        // 기초 데이터 집계
+        Long totalIncome = incomeQueryService.getMonthlyIncomeTotal(memberId, viewedMonth.atDay(1));
         Long totalFixedCost = fixedCostQueryService.getTotalFixedCost(memberId);
-        Long totalGeneralExpense = expenseQueryService.getMonthlyExpenseTotal(memberId, firstDayOfMonth);
+        Long totalGeneralExpense = expenseQueryService.getMonthlyExpenseTotal(memberId, viewedMonth.atDay(1));
         Long totalExpense = totalFixedCost + totalGeneralExpense;
         Long currentBalance = totalIncome - totalExpense;
 
-        long dailyBudget = 0L;
-        String status = "NORMAL";
-        String message = "";
-        long remainingDays = 0;
+        // 상태 및 예산 계산
+        BudgetLifecycleStatus status = determineStatus(viewedMonth, currentMonth, currentBalance, today, memberId);
+        long remainingDays = calculator.calculateRemainingDays(today, viewedMonth);
+        long dailyBudget = calculateDisplayBudget(status, currentBalance, memberId, today, remainingDays);
 
-        // 과거 / 현재 / 미래 분기 처리
-        if (viewedMonth.isBefore(currentMonth)) {
-            status = "PAST_MONTH";
-            message = "지나간 달의 지출 내역입니다. 총 지출을 확인해보세요.";
-
-        } else if (viewedMonth.isAfter(currentMonth)) {
-            status = "FUTURE_MONTH";
-            message = "승진하셨나요? 미래의 예산을 미리 보고 계십니다.";
-
-        } else {
-            // 현재 -> 생존 예산 로직 적용
-            LocalDate lastDayOfMonth = viewedMonth.atEndOfMonth();
-            remainingDays = java.time.temporal.ChronoUnit.DAYS.between(today, lastDayOfMonth) + 1;
-            Long todayExpense = expenseRepository.sumAmountByMemberIdAndDate(memberId, today);
-
-            if (currentBalance < 0) {
-                status = "DEFICIT";
-                dailyBudget = currentBalance;
-                message = "이미 적자 상태입니다! 지출을 줄이세요.";
-            } else if (remainingDays <= 1) {
-                status = "END_OF_MONTH";
-                dailyBudget = currentBalance;
-                message = "이번 달 마지막 날입니다.";
-            } else {
-                // 체감형 예산 계산
-                Long balanceStartOfDay = currentBalance + todayExpense;
-                Long baseDailyBudget = balanceStartOfDay / remainingDays;
-                dailyBudget = baseDailyBudget - todayExpense;
-
-                if (dailyBudget < 0) {
-                    status = "DEFICIT";
-                    message = "오늘 예산을 초과했습니다! 내일 예산이 줄어듭니다.";
-                } else {
-                    message = "오늘 사용 가능한 금액입니다.";
-                }
-            }
-        }
-
-        LocalDate threeDaysLater = LocalDate.now().plusDays(3);
-        boolean hasExpiring = inventoryRepository.existsByMemberIdAndStatusAndExpiryDateBetween(
-            memberId, InventoryStatus.IN_STORE, LocalDate.now().minusDays(100), threeDaysLater);
+        boolean hasExpiring = checkExpiringIngredients(memberId);
 
         return BudgetDashboardResponseDto.builder()
             .currentMonth(viewedMonth.toString())
@@ -94,9 +56,42 @@ public class BudgetQueryService {
             .totalExpense(totalExpense)
             .currentBalance(currentBalance)
             .dailyBudget(dailyBudget)
-            .budgetStatus(status)
-            .message(message)
+            .budgetStatus(status.getCode())
+            .message(status.getDefaultMessage())
             .hasExpiringIngredients(hasExpiring)
             .build();
+    }
+
+    // 생존 예산 상태 결정
+    private BudgetLifecycleStatus determineStatus(YearMonth viewed, YearMonth current, Long balance, LocalDate today, Long memberId) {
+        if (viewed.isBefore(current)) return BudgetLifecycleStatus.PAST_MONTH;
+        if (viewed.isAfter(current)) return BudgetLifecycleStatus.FUTURE_MONTH;
+        if (balance < 0) return BudgetLifecycleStatus.DEFICIT;
+
+        long remainingDays = calculator.calculateRemainingDays(today, viewed);
+        if (remainingDays <= 1) return BudgetLifecycleStatus.END_OF_MONTH;
+
+        Long todayExpense = expenseRepository.sumAmountByMemberIdAndDate(memberId, today);
+        long realTimeBudget = calculator.calculateRealTimeDailyBudget(balance, todayExpense, remainingDays);
+
+        return realTimeBudget < 0 ? BudgetLifecycleStatus.DANGER : BudgetLifecycleStatus.NORMAL;
+    }
+
+    // 생존 예산 계산
+    private long calculateDisplayBudget(BudgetLifecycleStatus status, Long balance, Long memberId, LocalDate today, long remainingDays) {
+        if (status == BudgetLifecycleStatus.PAST_MONTH || status == BudgetLifecycleStatus.FUTURE_MONTH) {
+            return 0L;
+        }
+        if (status == BudgetLifecycleStatus.DEFICIT || status == BudgetLifecycleStatus.END_OF_MONTH) {
+            return balance;
+        }
+
+        Long todayExpense = expenseRepository.sumAmountByMemberIdAndDate(memberId, today);
+        return calculator.calculateRealTimeDailyBudget(balance, todayExpense, remainingDays);
+    }
+
+    private boolean checkExpiringIngredients(Long memberId) {
+        return inventoryRepository.existsByMemberIdAndStatusAndExpiryDateBetween(
+            memberId, InventoryStatus.IN_STORE, LocalDate.now().minusDays(100), LocalDate.now().plusDays(3));
     }
 }
