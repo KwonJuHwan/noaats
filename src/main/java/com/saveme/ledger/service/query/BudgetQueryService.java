@@ -1,5 +1,7 @@
 package com.saveme.ledger.service.query;
 
+import com.saveme.consumption.domain.InventoryStatus;
+import com.saveme.consumption.repository.InventoryRepository;
 import com.saveme.ledger.dto.response.BudgetDashboardResponseDto;
 import com.saveme.ledger.repository.ExpenseRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ public class BudgetQueryService {
     private final FixedCostQueryService fixedCostQueryService;
     private final ExpenseQueryService expenseQueryService;
     private final ExpenseRepository expenseRepository;
+    private final InventoryRepository inventoryRepository;
 
 
     public BudgetDashboardResponseDto getDashboardData(Long memberId, String yearMonthStr) {
@@ -32,7 +35,7 @@ public class BudgetQueryService {
         Long totalExpense = totalFixedCost + totalGeneralExpense;
         Long currentBalance = totalIncome - totalExpense;
 
-        Long dailyBudget = 0L;
+        long dailyBudget = 0L;
         String status = "NORMAL";
         String message = "";
         long remainingDays = 0;
@@ -41,12 +44,10 @@ public class BudgetQueryService {
         if (viewedMonth.isBefore(currentMonth)) {
             status = "PAST_MONTH";
             message = "지나간 달의 지출 내역입니다. 총 지출을 확인해보세요.";
-            dailyBudget = 0L;
 
         } else if (viewedMonth.isAfter(currentMonth)) {
             status = "FUTURE_MONTH";
             message = "승진하셨나요? 미래의 예산을 미리 보고 계십니다.";
-            dailyBudget = 0L;
 
         } else {
             // 현재 -> 생존 예산 로직 적용
@@ -77,6 +78,10 @@ public class BudgetQueryService {
             }
         }
 
+        LocalDate threeDaysLater = LocalDate.now().plusDays(3);
+        boolean hasExpiring = inventoryRepository.existsByMemberIdAndStatusAndExpiryDateBetween(
+            memberId, InventoryStatus.IN_STORE, LocalDate.now().minusDays(100), threeDaysLater);
+
         return BudgetDashboardResponseDto.builder()
             .currentMonth(viewedMonth.toString())
             .prevMonth(viewedMonth.minusMonths(1).toString())
@@ -91,6 +96,7 @@ public class BudgetQueryService {
             .dailyBudget(dailyBudget)
             .budgetStatus(status)
             .message(message)
+            .hasExpiringIngredients(hasExpiring)
             .build();
     }
 }
