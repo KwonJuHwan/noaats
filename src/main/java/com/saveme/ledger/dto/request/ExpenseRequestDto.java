@@ -24,7 +24,7 @@ public class ExpenseRequestDto {
     private String ingredientName;
     private LocalDate expiryDate;
 
-    public boolean hasInventoryInfo() {
-        return ingredientName != null && !ingredientName.isBlank() && expiryDate != null;
+    public LocalDate setExpiryDate() {
+        return (expiryDate == null) ? spentAt.toLocalDate().plusDays(7) : expiryDate;
     }
 }
