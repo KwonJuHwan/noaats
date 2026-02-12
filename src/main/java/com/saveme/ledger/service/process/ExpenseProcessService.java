@@ -2,6 +2,7 @@ package com.saveme.ledger.service.process;
 
 import com.saveme.consumption.domain.Inventory;
 import com.saveme.consumption.repository.InventoryRepository;
+import com.saveme.consumption.service.InventoryCommandService;
 import com.saveme.ledger.domain.Category;
 import com.saveme.ledger.domain.Expense;
 import com.saveme.ledger.dto.request.ExpenseRequestDto;
@@ -24,6 +25,7 @@ public class ExpenseProcessService {
     private final CategoryRepository categoryRepository;
     private final InventoryRepository inventoryRepository;
     private final MemberRepository memberRepository;
+    private final InventoryCommandService inventoryCommandService;
 
     public Long registerExpense(Long memberId, ExpenseRequestDto request) {
 
@@ -45,8 +47,9 @@ public class ExpenseProcessService {
 
         expenseRepository.save(expense);
 
-        if (category.isGroceryContext() && request.hasInventoryInfo()) {
-            createInventoryFromExpense(member, request, expense);
+        if (category.isGroceryContext()) {
+            request.setExpiryDate();
+            inventoryCommandService.createInventory(member, request.getIngredientName(),request.getExpiryDate(),expense);
         }
 
         return expense.getId();
@@ -66,16 +69,5 @@ public class ExpenseProcessService {
         Expense expense = expenseRepository.findById(expenseId)
             .orElseThrow(() -> new IllegalArgumentException("지출 내역을 찾을 수 없습니다."));
         expenseRepository.delete(expense);
-    }
-
-    private void createInventoryFromExpense(Member member, ExpenseRequestDto request, Expense expense) {
-        Inventory inventory = Inventory.builder()
-            .member(member)
-            .name(request.getIngredientName())
-            .purchasePrice(expense.getAmount())
-            .purchaseDate(expense.getSpentAt().toLocalDate())
-            .expiryDate(request.getExpiryDate())
-            .build();
-        inventoryRepository.save(inventory);
     }
 }
