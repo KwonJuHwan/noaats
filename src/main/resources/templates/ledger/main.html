@@ -4,7 +4,9 @@
   <meta charset="UTF-8">
   <title>SaveME - 노아의 가계부</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
   <style>
+    /* 캘린더 관련 스타일 */
     .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background-color: #dee2e6; }
     .calendar-day { min-height: 120px; background-color: white; padding: 8px; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
     .calendar-day:hover { background-color: #f8f9fa; }
@@ -13,22 +15,70 @@
     .day-future { background-color: white; }
     .day-header { display: flex; justify-content: space-between; align-items: flex-start; }
     .day-number { font-weight: bold; }
+
+    /* 지출 내역 텍스트 스타일 */
     .expense-info { text-align: right; }
     .expense-total { font-size: 0.9rem; color: #dc3545; font-weight: bold; margin-bottom: 2px; }
     .expense-future-text { color: #6f42c1 !important; font-weight: bold; }
     .expense-future-badge { background-color: #f3e5f5 !important; color: #6f42c1 !important; }
     .top-category { font-size: 0.7rem; color: #6c757d; background: #f1f3f5; padding: 2px 4px; border-radius: 4px; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .expense-count { font-size: 0.7rem; color: #adb5bd;}
+
+    /* 대시보드 카드 스타일 */
     .summary-card { cursor: pointer; transition: 0.2s; border: none; }
     .summary-card:hover { transform: translateY(-3px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
     .detail-item { font-size: 0.95rem; }
-
-    /* 적자일 때 (음수) */
     .budget-deficit { color: #dc3545 !important; }
-    /* 정상일 때 */
     .budget-normal { color: #0d6efd !important; }
-    /* 과거/미래일 때 (회색) */
     .budget-neutral { color: #6c757d !important; }
+
+    /* [Feature 1] 냉장고 알림 애니메이션 */
+    @keyframes pulse-red {
+      0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+    }
+    .fridge-alert {
+      background-color: #dc3545 !important;
+      color: white !important;
+      border-color: #dc3545 !important;
+      animation: pulse-red 2s infinite;
+      position: relative;
+    }
+    /* 말풍선 스타일 */
+    .fridge-tooltip {
+      position: absolute;
+      top: -45px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #333;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 0.8rem;
+      white-space: nowrap;
+      display: none; /* hover시 표시 */
+    }
+    .fridge-alert:hover .fridge-tooltip { display: block; }
+    .fridge-tooltip::after {
+      content: " ";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: #333 transparent transparent transparent;
+    }
+
+    /* [Feature 2] 장보기 추가 입력 필드 */
+    #groceryFields {
+      background-color: #f8f9fa;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px dashed #ced4da;
+      display: none; /* 기본 숨김 */
+    }
   </style>
 </head>
 <body class="bg-light">
@@ -41,10 +91,19 @@
 
 <div class="container">
   <div class="row mb-4">
-    <div class="col-md-12 text-center">
+    <div class="col-md-12 text-center position-relative">
       <a th:href="@{/fixed-costs}" class="btn btn-outline-primary mx-2">🏠 고정 지출</a>
       <a th:href="@{/incomes}" class="btn btn-outline-success mx-2">💰 수입 관리</a>
-      <a th:href="@{/fridge}" class="btn btn-outline-success mx-2">🧊 냉장고</a>
+
+      <a th:href="@{/fridge}" class="btn mx-2"
+         th:classappend="${dashboard.hasExpiringIngredients} ? 'fridge-alert' : 'btn-outline-success'">
+
+         <span th:if="${dashboard.hasExpiringIngredients}" class="fridge-tooltip">
+           <i class="bi bi-exclamation-triangle-fill text-warning"></i> 유통기한 임박 재료가 있어요!
+         </span>
+        🧊 냉장고
+      </a>
+
       <a th:href="@{/statistics}" class="btn btn-outline-info mx-2">📊 통계</a>
     </div>
   </div>
@@ -65,14 +124,12 @@
           <p class="text-muted mb-1" th:text="${dashboard.message}">메시지</p>
 
           <div th:switch="${dashboard.budgetStatus}">
-
             <h2 th:case="'PAST_MONTH'" class="fw-bold display-6 text-secondary">
               <i class="bi bi-clock-history"></i> 기록 보관소
             </h2>
             <h2 th:case="'FUTURE_MONTH'" class="fw-bold display-6 text-secondary">
               <i class="bi bi-rocket-takeoff"></i> 미래 예산
             </h2>
-
             <h2 th:case="*"
                 class="fw-bold display-4"
                 th:classappend="${dashboard.budgetStatus == 'DEFICIT'} ? 'budget-deficit' : 'budget-normal'"
@@ -82,9 +139,9 @@
           </div>
 
           <small class="text-secondary">
-        <span th:if="${dashboard.remainingDays > 0}">
-            남은 일수: <strong th:text="${dashboard.remainingDays} + '일'">15일</strong>
-        </span>
+            <span th:if="${dashboard.remainingDays > 0}">
+                남은 일수: <strong th:text="${dashboard.remainingDays} + '일'">15일</strong>
+            </span>
             <span class="ms-1"> (클릭하여 전체 잔액 확인 ▼)</span>
           </small>
         </div>
@@ -129,10 +186,8 @@
                   summary=${expenseMap.get(T(java.time.LocalDate).parse(dateStr))},
                   currentDate=${T(java.time.LocalDate).now()},
                   targetDate=${T(java.time.LocalDate).parse(dateStr)}"
-
            class="calendar-day"
            th:classappend="${targetDate.isBefore(currentDate) ? 'day-past' : (targetDate.isEqual(currentDate) ? 'day-today' : 'day-future')}"
-
            th:data-date="${dateStr}"
            onclick="openDetail(this.getAttribute('data-date'))">
 
@@ -149,7 +204,6 @@
                 <span th:class="${targetDate.isAfter(currentDate) ? 'expense-future-text' : 'expense-total'}"
                       th:text="'-' + ${#numbers.formatInteger(summary.dailyTotal, 0, 'COMMA')} + '원'"></span>
           </div>
-
           <div class="top-category">
                 <span th:class="${targetDate.isAfter(currentDate) ? 'badge expense-future-badge' : ''}"
                       th:text="${summary.topCategoryName}">식비</span>
@@ -169,8 +223,7 @@
       </div>
       <div class="modal-body">
         <h6>지출 내역</h6>
-        <ul id="expenseList" class="list-group mb-4">
-        </ul>
+        <ul id="expenseList" class="list-group mb-4"></ul>
 
         <hr>
 
@@ -191,15 +244,23 @@
             <div class="d-flex gap-2">
               <select id="parentCategory" class="form-select" onchange="loadChildCategories(this.value)" required>
                 <option value="">-- 대분류 --</option>
-                <option th:each="cat : ${rootCategories}"
-                        th:value="${cat.id}"
-                        th:text="${cat.name}">
-                </option>
+                <option th:each="cat : ${rootCategories}" th:value="${cat.id}" th:text="${cat.name}"></option>
               </select>
 
-              <select name="categoryId" id="childCategory" class="form-select" style="display:none;">
+              <select name="categoryId" id="childCategory" class="form-select" style="display:none;" onchange="checkGrocery(this)">
                 <option value="">-- 소분류 --</option>
               </select>
+            </div>
+          </div>
+
+          <div id="groceryFields" class="mb-2">
+            <label class="form-label small fw-bold text-success">🥦 식재료 정보 (냉장고 등록)</label>
+            <div class="mb-1">
+              <input type="text" id="ingredientName" class="form-control form-control-sm" placeholder="재료명 ">
+            </div>
+            <div>
+              <input type="date" id="expiryDate" class="form-control form-control-sm">
+              <div class="form-text" style="font-size: 0.7rem;">* 유통기한 미입력 시 +7일 자동 설정</div>
             </div>
           </div>
 
@@ -214,23 +275,52 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script th:inline="javascript">
 
-  // [검증 및 전송 로직]
+  // [Feature 2] 장보기 카테고리 감지 (입력 필드 노출)
+  function checkGrocery(selectElement) {
+    if (!selectElement || selectElement.selectedIndex === -1) return;
+
+    const selectedText = selectElement.options[selectElement.selectedIndex].text;
+    const grocerySection = document.getElementById('groceryFields');
+
+    // '장보기'가 텍스트에 포함되어 있으면 필드 보이기
+    if (selectedText.includes('장보기')) {
+      grocerySection.style.display = 'block';
+
+      // 유통기한 디폴트 값 세팅 (오늘 + 7일)
+      if(!document.getElementById('expiryDate').value) {
+        const today = new Date();
+        today.setDate(today.getDate() + 7);
+        document.getElementById('expiryDate').value = today.toISOString().split('T')[0];
+      }
+    } else {
+      grocerySection.style.display = 'none';
+      document.getElementById('ingredientName').value = '';
+      document.getElementById('expiryDate').value = '';
+    }
+  }
+
+  // [검증 및 전송 프로세스]
   async function handleExpenseSubmit() {
     const amountInput = document.getElementById('formAmount');
-    const memoInput = document.getElementById('formMemo');
     const dateInput = document.getElementById('formDate');
+    const expenseId = document.getElementById('editExpenseId').value;
+
+    // 식재료 정보
+    const ingredientNameInput = document.getElementById('ingredientName');
+    const ingredientName = ingredientNameInput.value;
+    const expiryDate = document.getElementById('expiryDate').value;
 
     const amount = Number(amountInput.value);
     const dateStr = dateInput.value.split('T')[0];
 
-    //  금액 검증
+    // 1. 금액 검증
     if (!amount || amount <= 0) {
       alert("금액은 1원 이상이어야 합니다.");
       amountInput.focus();
       return;
     }
 
-    // 카테고리 검증
+    // 2. 카테고리 검증 및 ID 결정
     const parentSelect = document.getElementById('parentCategory');
     const childSelect = document.getElementById('childCategory');
 
@@ -240,83 +330,115 @@
       return;
     }
 
-    // 카테고리 ID 결정 로직 적용
-
     let finalCategoryId = parentSelect.value;
-    if (childSelect.style.display !== 'none' && childSelect.value) {
-      finalCategoryId = childSelect.value;
+    let selectedCategoryText = parentSelect.options[parentSelect.selectedIndex].text; // 대분류 텍스트
+
+    if (childSelect.style.display !== 'none') {
+      if(childSelect.value) {
+        finalCategoryId = childSelect.value;
+        selectedCategoryText = childSelect.options[childSelect.selectedIndex].text; // 소분류 텍스트
+      }
     }
 
-    let categoryHidden = document.getElementById('finalCategoryId');
-    if (!categoryHidden) {
-      categoryHidden = document.createElement('input');
-      categoryHidden.type = 'hidden';
-      categoryHidden.name = 'categoryId';
-      categoryHidden.id = 'finalCategoryId';
-      document.getElementById('expenseForm').appendChild(categoryHidden);
+    // [New Validation] 장보기 카테고리 선택 시 식재료명 필수 체크
+    if (selectedCategoryText.includes('장보기')) {
+      if (!ingredientName.trim()) {
+        alert("장보기 내역은 냉장고 등록을 위해 '재료명'을 반드시 입력해야 합니다.");
+        ingredientNameInput.focus();
+        return;
+      }
     }
-    categoryHidden.value = finalCategoryId;
 
-    // 기존 select들의 name 속성 제거 (중복 전송 방지)
-    parentSelect.removeAttribute('name');
-    childSelect.removeAttribute('name');
+    // 3. [Feature 3 & Pre-check] 과소비 경고 + 식비 방어 경고
+    if (!expenseId) {
+      try {
+        const response = await fetch('/api/expenses/pre-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: amount,
+            date: dateStr,
+            categoryId: Number(finalCategoryId)
+          })
+        });
+        const result = await response.json();
 
-
-    // [Feature 4] 과소비 경고 (Pre-check)
-    // 수정 모드일때는 pre-check 건너뛰기 (로직 단순화)
-    const expenseId = document.getElementById('editExpenseId').value;
-    if (expenseId) {
-      submitFormActual();
-      return;
+        if (result.warning) {
+          if (!confirm(`${result.message}\n\n정말 진행하시겠습니까?`)) return;
+        }
+      } catch (e) {
+        console.error("Pre-check failed", e);
+      }
     }
+
+    // 4. 최종 전송 (AJAX)
+    await submitExpenseAjax(finalCategoryId, ingredientName, expiryDate);
+  }
+
+  // [AJAX 전송 함수]
+  async function submitExpenseAjax(categoryId, ingredientName, expiryDate) {
+    const id = document.getElementById('editExpenseId').value;
+    const amount = document.getElementById('formAmount').value;
+    const memo = document.getElementById('formMemo').value;
+    const spentAt = document.getElementById('formDate').value;
+
+    const data = {
+      amount: Number(amount),
+      memo: memo,
+      categoryId: Number(categoryId),
+      spentAt: spentAt,
+      ingredientName: ingredientName || null,
+      expiryDate: expiryDate || null
+    };
 
     try {
-      const response = await fetch('/api/expenses/pre-check', {
-        method: 'POST',
+      let url = '/api/expenses';
+      let method = 'POST';
+
+      if (id) {
+        url += '/' + id;
+        method = 'PUT';
+      }
+
+      const response = await fetch(url, {
+        method: method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: amount, date: dateStr })
+        body: JSON.stringify(data)
       });
 
-      const result = await response.json();
-
-      if (result.warning) {
-        if (confirm(`${result.message}\n\n정말 지출하시겠습니까?`)) {
-          submitFormActual();
-        }
+      if (response.ok) {
+        alert(id ? "수정되었습니다." : "등록되었습니다.");
+        location.reload();
       } else {
-        submitFormActual();
+        alert("처리 중 오류가 발생했습니다.");
       }
-    } catch (e) {
-      console.error("Pre-check failed", e);
-      submitFormActual();
+    } catch (error) {
+      console.error('Error:', error);
+      alert("서버 통신 오류");
     }
   }
 
-  // 실제 폼 전송 함수
-  function submitFormActual() {
-    const form = document.getElementById('expenseForm');
-    const id = document.getElementById('editExpenseId').value;
-
-    // 동적으로 action과 method 설정
-    if (id) {
-      form.action = "/expenses/update/" + id;
-    } else {
-      form.action = "/expenses/register";
+  // [AJAX 삭제 함수]
+  async function deleteExpense(id) {
+    if (confirm('정말 삭제하시겠습니까?')) {
+      try {
+        const response = await fetch(`/api/expenses/${id}`, { method: 'DELETE' });
+        if (response.ok) location.reload();
+        else alert("삭제 실패");
+      } catch (e) {
+        console.error(e);
+        alert("오류 발생");
+      }
     }
-    form.method = "post";
-    form.submit();
   }
 
-  // 1. 소분류 불러오기 함수
+  // 1. 소분류 불러오기
   async function loadChildCategories(parentId, selectedChildId = null) {
     const childSelect = document.getElementById('childCategory');
-    const parentSelect = document.getElementById('parentCategory');
 
     if (!parentId) {
       childSelect.style.display = 'none';
       childSelect.innerHTML = '<option value="">-- 소분류 --</option>';
-      childSelect.removeAttribute('name');
-      parentSelect.removeAttribute('name');
       return;
     }
 
@@ -332,17 +454,12 @@
           const isSelected = (selectedChildId && String(cat.id) === String(selectedChildId)) ? 'selected' : '';
           options += `<option value="${cat.id}" ${isSelected}>${cat.name}</option>`;
         });
-
         childSelect.innerHTML = options;
         childSelect.style.display = 'block';
         childSelect.required = true;
-        childSelect.setAttribute('name', 'categoryId');
-        parentSelect.removeAttribute('name');
       } else {
         childSelect.style.display = 'none';
         childSelect.required = false;
-        childSelect.removeAttribute('name');
-        parentSelect.setAttribute('name', 'categoryId');
       }
     } catch (error) {
       console.error(error);
@@ -350,12 +467,16 @@
     }
   }
 
-  // 2. 상세 모달 열기
+  // 2. 상세 모달 열기 (날짜 클릭 시)
   async function openDetail(date) {
-    document.getElementById('modalDate').innerText = date + ' 지출 내역';
-    document.getElementById('formDate').value = date + 'T12:00:00';
+    // 1. 폼 리셋을 먼저 수행하여 불필요한 값 제거
     resetForm();
 
+    // 2. 날짜 값 세팅 (resetForm 이후에 해야 지워지지 않음)
+    document.getElementById('modalDate').innerText = date + ' 지출 내역';
+    document.getElementById('formDate').value = date + 'T12:00:00';
+
+    // 3. 지출 목록 가져오기
     const response = await fetch(`/api/expenses/daily?date=${date}`);
     const expenses = await response.json();
 
@@ -368,7 +489,6 @@
 
     expenses.forEach(ex => {
       const parentId = ex.parentId || '';
-
       const li = document.createElement('li');
       li.className = 'list-group-item d-flex justify-content-between align-items-center';
 
@@ -403,18 +523,23 @@
     document.getElementById('formAmount').value = amount;
     document.getElementById('formMemo').value = memo;
 
+    document.getElementById('parentCategory').value = parentId ? parentId : childId;
+
     if (parentId) {
-      document.getElementById('parentCategory').value = parentId;
       await loadChildCategories(parentId, childId);
     } else {
-      document.getElementById('parentCategory').value = childId;
       await loadChildCategories(childId);
+    }
+
+    // [중요] 카테고리 로딩 후, 해당 카테고리가 '장보기'라면 필드 노출
+    const childSelect = document.getElementById('childCategory');
+    if(childSelect.style.display !== 'none' && childSelect.value) {
+      checkGrocery(childSelect);
     }
 
     document.getElementById('submitBtn').innerText = "수정 완료";
     document.getElementById('submitBtn').className = "btn btn-warning w-100";
     document.getElementById('cancelEditBtn').style.display = "block";
-    // action은 submitFormActual에서 처리하므로 여기서는 UI 변경만 신경 씀
   }
 
   // 4. 폼 초기화
@@ -428,17 +553,16 @@
     document.getElementById('childCategory').style.display = 'none';
     document.getElementById('childCategory').innerHTML = '<option value="">-- 소분류 --</option>';
 
-    document.getElementById('submitBtn').innerText = "저장하기"; // 텍스트 변경
+    document.getElementById('submitBtn').innerText = "저장하기";
     document.getElementById('submitBtn').className = "btn btn-primary w-100";
     document.getElementById('cancelEditBtn').style.display = "none";
+
+    document.getElementById('groceryFields').style.display = 'none';
+    document.getElementById('ingredientName').value = '';
+    document.getElementById('expiryDate').value = '';
+
   }
 
-  async function deleteExpense(id) {
-    if (confirm('정말 삭제하시겠습니까?')) {
-      const response = await fetch(`/expenses/delete/${id}`, { method: 'POST' });
-      if (response.ok) location.reload();
-    }
-  }
 </script>
 </body>
 </html>
