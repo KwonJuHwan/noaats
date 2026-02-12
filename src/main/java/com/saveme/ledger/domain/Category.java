@@ -43,7 +43,7 @@ public class Category {
         return this.parent == null;
     }
     public boolean isGroceryContext() {
-        return "식비".equals(this.name) || "장보기".equals(this.name);
+        return "장보기".equals(this.name);
     }
 
 
