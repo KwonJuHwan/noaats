@@ -1,6 +1,6 @@
 package com.saveme.ledger.controller;
 
-import com.saveme.ledger.domain.OpportunityCost;
+import com.saveme.ledger.domain.enums.OpportunityCost;
 import com.saveme.ledger.dto.request.ExpenseRequestDto;
 import com.saveme.ledger.dto.request.ExpenseSimulationRequestDto;
 import com.saveme.ledger.dto.response.ExpenseDetailResponseDto;

@@ -1,4 +1,4 @@
-package com.saveme.ledger.domain;
+package com.saveme.ledger.domain.enums;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
