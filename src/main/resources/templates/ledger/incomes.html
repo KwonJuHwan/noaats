@@ -1,12 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head>
-  <meta charset="UTF-8">
-  <title>수입(예산) 관리</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-</head>
+<head th:replace="~{layout/fragments :: head('수입(예산) 관리', ~{})}"></head>
 <body class="bg-light">
+
 <div class="container mt-5">
   <a href="/" class="btn btn-link">&larr; 대시보드로 돌아가기</a>
   <h2 class="mb-4">💰 수입(예산) 관리</h2>
@@ -18,17 +14,11 @@
         <div class="col-md-3">
           <select name="incomeType" id="incomeType" class="form-select" required>
             <option value="">-- 유형 --</option>
-            <option th:each="type : ${incomeTypes}"
-                    th:value="${type}"
-                    th:text="${type.description}"></option>
+            <option th:each="type : ${incomeTypes}" th:value="${type}" th:text="${type.description}"></option>
           </select>
         </div>
-        <div class="col-md-3">
-          <input type="number" name="amount" id="amount" class="form-control" placeholder="금액" required>
-        </div>
-        <div class="col-md-3">
-          <input type="date" name="date" id="date" class="form-control" required>
-        </div>
+        <div class="col-md-3"><input type="number" name="amount" id="amount" class="form-control" placeholder="금액" required></div>
+        <div class="col-md-3"><input type="date" name="date" id="date" class="form-control" required></div>
         <div class="col-md-3 d-flex align-items-center">
           <div class="form-check">
             <input class="form-check-input" type="checkbox" name="isRegular" id="isRegular">
@@ -36,9 +26,7 @@
           </div>
           <button type="button" class="btn btn-sm btn-link ms-auto" onclick="resetIncomeForm()" id="incomeCancelBtn" style="display:none;">취소</button>
         </div>
-        <div class="col-12">
-          <button type="button" class="btn btn-success w-100" id="incomeSubmitBtn" onclick="saveIncome()">등록</button>
-        </div>
+        <div class="col-12"><button type="button" class="btn btn-success w-100" id="incomeSubmitBtn" onclick="saveIncome()">등록</button></div>
       </form>
     </div>
   </div>
@@ -57,134 +45,82 @@
 
   <table class="table table-hover bg-white shadow-sm">
     <thead class="table-success">
-    <tr>
-      <th>날짜</th>
-      <th>유형</th>
-      <th>금액</th>
-      <th>정기여부</th>
-      <th>관리</th>
-    </tr>
+    <tr><th>날짜</th><th>유형</th><th>금액</th><th>정기여부</th><th>관리</th></tr>
     </thead>
     <tbody>
     <tr th:each="income : ${incomes}">
-      <td th:text="${income.date}">2024-02-11</td>
-      <td th:text="${income.incomeType}">월급</td>
-      <td th:text="${#numbers.formatInteger(income.amount, 0, 'COMMA')} + '원'">2,000,000</td>
+      <td th:text="${income.date}"></td>
+      <td th:text="${income.incomeType}"></td>
+      <td th:text="${#numbers.formatInteger(income.amount, 0, 'COMMA')} + '원'"></td>
       <td>
         <span th:if="${income.isRegular}" class="badge bg-info">정기</span>
         <span th:unless="${income.isRegular}" class="badge bg-secondary">비정기</span>
       </td>
       <td>
-        <button type="button" class="btn btn-sm btn-warning"
-                th:data-id="${income.id}"
-                th:data-type="${income.incomeTypeKey}"
-                th:data-amount="${income.amount}"
-                th:data-date="${income.date}"
-                th:data-regular="${income.isRegular}"
-                onclick="fillIncomeForm(this)">수정</button>
-
-        <button type="button" class="btn btn-sm btn-danger"
-                th:onclick="|deleteIncome(${income.id})|">삭제</button>
+        <button type="button" class="btn btn-sm btn-warning" th:data-id="${income.id}" th:data-type="${income.incomeTypeKey}" th:data-amount="${income.amount}" th:data-date="${income.date}" th:data-regular="${income.isRegular}" onclick="fillIncomeForm(this)">수정</button>
+        <button type="button" class="btn btn-sm btn-danger" th:onclick="|deleteIncome(${income.id})|">삭제</button>
       </td>
     </tr>
     </tbody>
   </table>
 </div>
 
+<div th:replace="~{layout/fragments :: errorModal}"></div>
+<th:block th:replace="~{layout/fragments :: scripts}"></th:block>
+
 <script>
-  // [AJAX 저장 함수]
   async function saveIncome() {
     if(!validateIncome()) return;
-
-    // 수정 시 dataset.id를 사용
     const id = document.getElementById('incomeForm').dataset.id;
-    const incomeType = document.getElementById('incomeType').value;
-    const amount = document.getElementById('amount').value;
-    const date = document.getElementById('date').value;
-    const isRegular = document.getElementById('isRegular').checked;
-
     const data = {
-      incomeType: incomeType,
-      amount: Number(amount),
-      date: date,
-      isRegular: isRegular
+      incomeType: document.getElementById('incomeType').value,
+      amount: Number(document.getElementById('amount').value),
+      date: document.getElementById('date').value,
+      isRegular: document.getElementById('isRegular').checked
     };
 
     try {
       let url = '/api/incomes';
       let method = 'POST';
+      if(id) { url += '/' + id; method = 'PUT'; }
 
-      if(id) {
-        url += '/' + id;
-        method = 'PUT';
-      }
-
-      const res = await fetch(url, {
-        method: method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-
-      if(res.ok) {
-        alert(id ? "수정되었습니다." : "등록되었습니다.");
-        location.reload();
-      } else {
-        alert("저장 실패");
-      }
-    } catch(e) { console.error(e); }
+      await callApi(url, method, data);
+      alert(id ? "수정되었습니다." : "등록되었습니다.");
+      location.reload();
+    } catch(e) { console.log(e); }
   }
 
-  // [AJAX 삭제 함수]
   async function deleteIncome(id) {
     if(!confirm("정말 삭제하시겠습니까?")) return;
     try {
-      const res = await fetch(`/api/incomes/${id}`, { method: 'DELETE' });
-      if(res.ok) location.reload();
-      else alert("삭제 실패");
-    } catch(e) { console.error(e); }
+      await callApi(`/api/incomes/${id}`, 'DELETE');
+      location.reload();
+    } catch(e) { console.log(e); }
   }
 
-  // [수정 폼 채우기]
   function fillIncomeForm(btn) {
-    const id = btn.dataset.id;
-    const type = btn.dataset.type;
-    const amount = btn.dataset.amount;
-    const date = btn.dataset.date;
-    const isRegular = btn.dataset.regular === 'true';
-
     document.getElementById('incomeFormTitle').innerText = "수입 내역 수정";
-    document.getElementById('incomeType').value = type;
-    document.getElementById('amount').value = amount;
-    document.getElementById('date').value = date;
-    document.getElementById('isRegular').checked = isRegular;
-
+    document.getElementById('incomeType').value = btn.dataset.type;
+    document.getElementById('amount').value = btn.dataset.amount;
+    document.getElementById('date').value = btn.dataset.date;
+    document.getElementById('isRegular').checked = btn.dataset.regular === 'true';
     document.getElementById('incomeSubmitBtn').innerText = "수정 완료";
     document.getElementById('incomeSubmitBtn').className = "btn btn-warning w-100";
     document.getElementById('incomeCancelBtn').style.display = "block";
-
-    // ID를 폼의 dataset에 저장 (AJAX용)
-    document.getElementById('incomeForm').dataset.id = id;
+    document.getElementById('incomeForm').dataset.id = btn.dataset.id;
   }
 
-  // [초기화]
   function resetIncomeForm() {
     document.getElementById('incomeFormTitle').innerText = "새 수입 등록";
     document.getElementById('incomeForm').reset();
-
     document.getElementById('incomeSubmitBtn').innerText = "등록";
     document.getElementById('incomeSubmitBtn').className = "btn btn-success w-100";
     document.getElementById('incomeCancelBtn').style.display = "none";
-
-    // ID 데이터 삭제
     delete document.getElementById('incomeForm').dataset.id;
   }
 
   function validateIncome() {
-    const amount = Number(document.getElementById('amount').value);
-    if (amount <= 0) {
-      alert("금액은 1원 이상이어야 합니다.");
-      return false;
-    }
+    if (Number(document.getElementById('amount').value) <= 0) { alert("금액은 1원 이상이어야 합니다."); return false; }
     return true;
   }
 </script>
