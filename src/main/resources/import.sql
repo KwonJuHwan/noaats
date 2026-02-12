@@ -44,3 +44,16 @@ ALTER TABLE expense ALTER COLUMN expense_id RESTART WITH 100;
 -- 6. 수입 내역
 INSERT INTO income (amount, "DATE", income_type, is_regular, member_id) VALUES (2600000, '2026-02-01', 0, true, 1);
 ALTER TABLE income ALTER COLUMN income_id RESTART WITH 100;
+
+INSERT INTO inventory (member_id, name, purchase_date, expiry_date, status) VALUES (1, '숙주나물', '2026-02-09', '2026-02-12', 'IN_STORE');
+INSERT INTO inventory (member_id, name, purchase_date, expiry_date, status) VALUES (1, '우유', '2026-02-05', '2026-02-13', 'IN_STORE');
+
+-- 2. 유통기한 주의 (노란불, D-3 ~ D-7) -> 2026-02-15 ~ 18
+INSERT INTO inventory (member_id, name, purchase_date, expiry_date, status) VALUES (1, '계란 30구', '2026-02-01', '2026-02-15', 'IN_STORE');
+INSERT INTO inventory (member_id, name, purchase_date, expiry_date, status) VALUES (1, '두부', '2026-02-10', '2026-02-16', 'IN_STORE');
+
+-- 3. 유통기한 넉넉 (초록불)
+INSERT INTO inventory (member_id, name, purchase_date, expiry_date, status) VALUES (1, '냉동 만두', '2026-01-20', '2026-05-20', 'IN_STORE');
+INSERT INTO inventory (member_id, name, purchase_date, expiry_date, status) VALUES (1, '고추장', '2025-12-01', '2026-12-01', 'IN_STORE');
+ALTER TABLE inventory ALTER COLUMN inventory_id RESTART WITH 100;
+
