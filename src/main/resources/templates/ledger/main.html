@@ -407,7 +407,12 @@
       });
 
       if (response.ok) {
-        alert(id ? "수정되었습니다." : "등록되었습니다.");
+        if (!id) { // 등록(POST) 일 때
+          const resData = await response.json();
+          alert(resData.message);
+        } else { // 수정(PUT) 일 때
+          alert("수정되었습니다.");
+        }
         location.reload();
       } else {
         alert("처리 중 오류가 발생했습니다.");
