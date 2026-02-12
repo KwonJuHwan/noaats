@@ -13,8 +13,7 @@
   <div class="card mb-4 border-primary">
     <div class="card-body">
       <h5 id="fixedFormTitle">새 고정 지출 등록</h5>
-      <form id="fixedForm" th:action="@{/fixed-costs/register}" method="post"
-            class="row g-2 align-items-end" onsubmit="return validateFixedCost()">
+      <form id="fixedForm" class="row g-2 align-items-end">
 
         <div class="col-md-3">
           <label class="form-label small text-muted">항목명</label>
@@ -49,7 +48,7 @@
         </div>
 
         <div class="col-md-1">
-          <button type="submit" class="btn btn-primary w-100" id="fixedSubmitBtn">등록</button>
+          <button type="button" class="btn btn-primary w-100" id="fixedSubmitBtn" onclick="saveFixedCost()">등록</button>
           <button type="button" class="btn btn-sm btn-link w-100 mt-1" onclick="resetFixedForm()" id="fixedCancelBtn" style="display:none; font-size: 0.8rem;">취소</button>
         </div>
       </form>
@@ -81,9 +80,8 @@
               th:data-child-id="${fc.categoryId}"
               onclick="fillFixedForm(this)">수정</button>
 
-      <form th:action="@{/fixed-costs/delete/{id}(id=${fc.fixedCostId})}" method="post" style="display:inline;">
-        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('삭제할까요?')">삭제</button>
-      </form>
+      <button type="button" class="btn btn-sm btn-danger"
+              th:onclick="|deleteFixedCost(${fc.fixedCostId})|">삭제</button>
     </td>
     </tr>
     </tbody>
@@ -91,16 +89,77 @@
 </div>
 
 <script>
-  // 1. 카테고리 로딩 (공통 로직)
+  // [AJAX 저장 함수]
+  async function saveFixedCost() {
+    if (!validateFixedCost()) return;
+
+    const id = document.getElementById('fixedForm').dataset.id;
+    const title = document.getElementById('fixedTitle').value;
+    const amount = document.getElementById('fixedAmount').value;
+    const paymentDay = document.getElementById('fixedDay').value;
+
+    const parentSelect = document.getElementById('parentCategory');
+    const childSelect = document.getElementById('childCategory');
+
+    let categoryId = parentSelect.value;
+    if (childSelect.style.display !== 'none' && childSelect.value) {
+      categoryId = childSelect.value;
+    }
+
+    if(!categoryId) {
+      alert("카테고리를 선택해주세요.");
+      return;
+    }
+
+    const data = {
+      title: title,
+      amount: Number(amount),
+      paymentDay: Number(paymentDay),
+      categoryId: Number(categoryId)
+    };
+
+    try {
+      let url = '/api/fixed-costs';
+      let method = 'POST';
+
+      if (id) {
+        url += '/' + id;
+        method = 'PUT';
+      }
+
+      const res = await fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      if (res.ok) {
+        alert(id ? "수정되었습니다." : "등록되었습니다.");
+        location.reload();
+      } else {
+        alert("저장 실패");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  // [AJAX 삭제 함수]
+  async function deleteFixedCost(id) {
+    if(!confirm("삭제하시겠습니까?")) return;
+    try {
+      const res = await fetch(`/api/fixed-costs/${id}`, { method: 'DELETE' });
+      if(res.ok) location.reload();
+    } catch(e) { console.error(e); }
+  }
+
+  // 1. 카테고리 로딩
   async function loadChildCategories(parentId, selectedChildId = null) {
     const childSelect = document.getElementById('childCategory');
-    const parentSelect = document.getElementById('parentCategory');
 
     if (!parentId) {
       childSelect.style.display = 'none';
       childSelect.innerHTML = '<option value="">소분류</option>';
-      childSelect.removeAttribute('name');
-      parentSelect.removeAttribute('name');
       return;
     }
 
@@ -116,18 +175,12 @@
           const isSelected = (selectedChildId && String(cat.id) === String(selectedChildId)) ? 'selected' : '';
           options += `<option value="${cat.id}" ${isSelected}>${cat.name}</option>`;
         });
-
         childSelect.innerHTML = options;
         childSelect.style.display = 'block';
         childSelect.required = true;
-        childSelect.setAttribute('name', 'categoryId');
-        parentSelect.removeAttribute('name');
       } else {
-        // 소분류 없음 -> 대분류가 곧 값
         childSelect.style.display = 'none';
         childSelect.required = false;
-        childSelect.removeAttribute('name');
-        parentSelect.setAttribute('name', 'categoryId');
       }
     } catch (error) {
       console.error(error);
@@ -135,14 +188,13 @@
     }
   }
 
-  // 2. 수정 폼 채우기 (Async 필수)
+  // 2. 수정 폼 채우기
   async function fillFixedForm(btn) {
     const id = btn.dataset.id;
     const title = btn.dataset.title;
     const amount = btn.dataset.amount;
     const day = btn.dataset.day;
 
-    // 데이터셋에서 카테고리 정보 추출
     const parentId = btn.dataset.parentId;
     const childId = btn.dataset.childId;
 
@@ -151,12 +203,10 @@
     document.getElementById('fixedAmount').value = amount;
     document.getElementById('fixedDay').value = day;
 
-    // 카테고리 세팅 로직
+    document.getElementById('parentCategory').value = parentId ? parentId : childId;
     if (parentId) {
-      document.getElementById('parentCategory').value = parentId;
       await loadChildCategories(parentId, childId);
     } else {
-      document.getElementById('parentCategory').value = childId; // 혹은 루트 카테고리일 경우
       await loadChildCategories(childId);
     }
 
@@ -164,7 +214,8 @@
     document.getElementById('fixedSubmitBtn').className = "btn btn-warning w-100";
     document.getElementById('fixedCancelBtn').style.display = "block";
 
-    document.getElementById('fixedForm').action = "/fixed-costs/update/" + id;
+    // ID 저장
+    document.getElementById('fixedForm').dataset.id = id;
   }
 
   // 3. 폼 리셋
@@ -174,7 +225,6 @@
     document.getElementById('fixedAmount').value = "";
     document.getElementById('fixedDay').value = "";
 
-    // 카테고리 초기화
     document.getElementById('parentCategory').value = "";
     document.getElementById('childCategory').style.display = 'none';
     document.getElementById('childCategory').innerHTML = '<option value="">소분류</option>';
@@ -183,7 +233,7 @@
     document.getElementById('fixedSubmitBtn').className = "btn btn-primary w-100";
     document.getElementById('fixedCancelBtn').style.display = "none";
 
-    document.getElementById('fixedForm').action = "/fixed-costs/register";
+    delete document.getElementById('fixedForm').dataset.id;
   }
 
   function validateFixedCost() {
@@ -193,14 +243,12 @@
     const dayInput = document.getElementById('fixedDay');
     const day = Number(dayInput.value);
 
-    // 금액 검증
     if (amount <= 0) {
       alert("금액은 1원 이상이어야 합니다.");
       amountInput.focus();
       return false;
     }
 
-    // 날짜 검증
     if (day < 1 || day > 31) {
       alert("결제일은 1일에서 31일 사이여야 합니다.");
       dayInput.focus();
@@ -209,7 +257,6 @@
 
     return true;
   }
-
 </script>
 </body>
 </html>
