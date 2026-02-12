@@ -4,6 +4,7 @@ import com.saveme.ledger.domain.Expense;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 public interface ExpenseRepositoryCustom {
     // 특정 월의 지출 내역 전체 조회
@@ -12,4 +13,6 @@ public interface ExpenseRepositoryCustom {
     List<Expense> findExpensesByDate(Long memberId, LocalDate date);
 
     Long sumAmountByMemberIdAndDateBetween(Long memberId, LocalDateTime startDate, LocalDateTime endDate);
+
+    Map<String, Long> findExpenseAmountsByCategory(Long memberId, LocalDate yearMonth);
 }
