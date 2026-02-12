@@ -18,10 +18,13 @@ public class BudgetDashboardResponseDto {
     private Long totalFixedCost;
     private Long totalGeneralExpense;
     private Long totalExpense; // 고정 + 일반
-    private Long currentBalance; // 현재 잔액 (Total - Spent)
+    private Long currentBalance; // 현재 잔액
 
     //생존 예산 관련
     private Long dailyBudget;
     private String budgetStatus;
     private String message;
+
+    // 냉장고 버튼 트리거
+    private boolean hasExpiringIngredients;
 }
