@@ -79,13 +79,47 @@
       border: 1px dashed #ced4da;
       display: none; /* 기본 숨김 */
     }
+
+    /* [Feature 3] 심야 시간 경고 스타일 (Night Owl) */
+    .night-mode-header {
+      background-color: #212529 !important; /* 다크 모드 배경 */
+      color: #ffc107 !important; /* 노란색 텍스트 (경고) */
+      border-bottom: 1px solid #495057;
+    }
+    .night-mode-alert {
+      background-color: #343a40;
+      color: #fff;
+      border-left: 5px solid #ffc107;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      display: none; /* 기본 숨김 */
+    }
+    .night-mode-btn {
+      background-color: #495057 !important;
+      border-color: #495057 !important;
+    }
+    .night-mode-btn:hover {
+      background-color: #343a40 !important;
+    }
+    /* 테스트용 시간 조절 버튼 */
+    #timeTravelBtn {
+      cursor: pointer;
+      transition: all 0.3s;
+    }
   </style>
 </head>
 <body class="bg-light">
 
 <nav class="navbar navbar-dark bg-primary mb-4">
-  <div class="container">
+  <div class="container d-flex justify-content-between">
     <span class="navbar-brand mb-0 h1">SaveME DashBoard</span>
+
+    <button id="timeTravelBtn" class="btn btn-outline-light btn-sm d-flex align-items-center gap-2" onclick="toggleTestTimeMode()">
+      <i id="timeIcon" class="bi bi-sun-fill"></i>
+      <span id="timeText">현재: 주간 모드</span>
+    </button>
   </div>
 </nav>
 
@@ -217,11 +251,18 @@
 <div class="modal fade" id="detailModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
-      <div class="modal-header bg-light">
+      <div class="modal-header bg-light" id="nightModeHeader">
         <h5 class="modal-title" id="modalDate">지출 내역</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
+
+        <div id="nightOwlAlert" class="night-mode-alert">
+          <i class="bi bi-moon-stars-fill"></i> <strong>심야의 지름신 주의보</strong><br>
+          지금은 감성이 이성을 지배하는 시간입니다.<br>
+          혹시 충동구매가 아닌지 한 번 더 생각해보는 건 어떨까요?
+        </div>
+
         <h6>지출 내역</h6>
         <ul id="expenseList" class="list-group mb-4"></ul>
 
@@ -274,6 +315,76 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script th:inline="javascript">
+
+  // [Global State] 테스트용 시간 상태 (false: 주간, true: 심야)
+  let isNightMode = false;
+
+  // [Test Feature] 페이지 로드 시 실제 시간 기준으로 초기화
+  window.onload = function() {
+    const hour = new Date().getHours();
+    // 22시~04시 사이면 밤으로 초기화
+    if (hour >= 22 || hour < 4) {
+      isNightMode = true;
+    }
+    updateTestBtnUI(); // 버튼 UI 동기화
+  };
+
+  // [Test Feature] 버튼 클릭 시 모드 토글
+  function toggleTestTimeMode() {
+    isNightMode = !isNightMode; // 상태 반전
+    updateTestBtnUI();
+
+    // 만약 모달이 열려있다면 즉시 스타일 적용
+    const modal = document.getElementById('detailModal');
+    if (modal.classList.contains('show')) {
+      checkNightOwl();
+    }
+  }
+
+  // [Test Feature] 버튼 UI 업데이트
+  function updateTestBtnUI() {
+    const btn = document.getElementById('timeTravelBtn');
+    const icon = document.getElementById('timeIcon');
+    const text = document.getElementById('timeText');
+
+    if (isNightMode) {
+      // 밤 모드
+      btn.className = 'btn btn-dark btn-sm d-flex align-items-center gap-2 border-warning text-warning';
+      icon.className = 'bi bi-moon-stars-fill';
+      text.innerText = "현재: 심야 모드 (Testing)";
+    } else {
+      // 주간 모드
+      btn.className = 'btn btn-outline-light btn-sm d-flex align-items-center gap-2';
+      icon.className = 'bi bi-sun-fill';
+      text.innerText = "현재: 주간 모드";
+    }
+  }
+
+  // [Feature 3] 심야 시간 체크 및 모달 스타일 변경
+  function checkNightOwl() {
+    const header = document.getElementById('nightModeHeader');
+    const alertBox = document.getElementById('nightOwlAlert');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // 전역 변수 isNightMode 상태에 따라 분기
+    if (isNightMode) {
+      header.classList.remove('bg-light');
+      header.classList.add('night-mode-header');
+      alertBox.style.display = 'block';
+
+      submitBtn.classList.remove('btn-primary', 'btn-warning'); // 기존 클래스 제거
+      submitBtn.classList.add('night-mode-btn', 'btn'); // 다크 버튼 적용
+      submitBtn.innerText = "그래도 저장하기";
+    } else {
+      header.classList.add('bg-light');
+      header.classList.remove('night-mode-header');
+      alertBox.style.display = 'none';
+
+      submitBtn.classList.remove('night-mode-btn');
+      submitBtn.classList.add('btn-primary'); // 원복
+      submitBtn.innerText = "저장하기"; // 텍스트 원복은 resetForm에서도 하지만 여기서도 안전하게
+    }
+  }
 
   // [Feature 2] 장보기 카테고리 감지 (입력 필드 노출)
   function checkGrocery(selectElement) {
@@ -340,7 +451,7 @@
       }
     }
 
-    // [New Validation] 장보기 카테고리 선택 시 식재료명 필수 체크
+    // [Validation] 장보기 카테고리 선택 시 식재료명 필수 체크
     if (selectedCategoryText.includes('장보기')) {
       if (!ingredientName.trim()) {
         alert("장보기 내역은 냉장고 등록을 위해 '재료명'을 반드시 입력해야 합니다.");
@@ -477,11 +588,14 @@
     // 1. 폼 리셋을 먼저 수행하여 불필요한 값 제거
     resetForm();
 
-    // 2. 날짜 값 세팅 (resetForm 이후에 해야 지워지지 않음)
+    // 2. [New] 심야 시간 체크 실행 (글로벌 상태 기반)
+    checkNightOwl();
+
+    // 3. 날짜 값 세팅 (resetForm 이후에 해야 지워지지 않음)
     document.getElementById('modalDate').innerText = date + ' 지출 내역';
     document.getElementById('formDate').value = date + 'T12:00:00';
 
-    // 3. 지출 목록 가져오기
+    // 4. 지출 목록 가져오기
     const response = await fetch(`/api/expenses/daily?date=${date}`);
     const expenses = await response.json();
 
@@ -543,7 +657,12 @@
     }
 
     document.getElementById('submitBtn').innerText = "수정 완료";
+
+    // 수정 모드에서는 버튼 스타일을 warning으로 변경 (심야 모드일 때도 수정은 수정임)
+    // 단, checkNightOwl이 호출되면 다시 덮어씌워질 수 있으므로 주의 필요.
+    // 여기서는 수정 모드 진입 시 심야 모드 스타일을 잠시 무시하고 '수정'임을 강조
     document.getElementById('submitBtn').className = "btn btn-warning w-100";
+
     document.getElementById('cancelEditBtn').style.display = "block";
   }
 
@@ -558,14 +677,15 @@
     document.getElementById('childCategory').style.display = 'none';
     document.getElementById('childCategory').innerHTML = '<option value="">-- 소분류 --</option>';
 
-    document.getElementById('submitBtn').innerText = "저장하기";
-    document.getElementById('submitBtn').className = "btn btn-primary w-100";
+    // 버튼 텍스트 초기화 (스타일은 checkNightOwl에서 결정됨)
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.innerText = "저장하기";
+
     document.getElementById('cancelEditBtn').style.display = "none";
 
     document.getElementById('groceryFields').style.display = 'none';
     document.getElementById('ingredientName').value = '';
     document.getElementById('expiryDate').value = '';
-
   }
 
 </script>
