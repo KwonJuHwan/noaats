@@ -1,12 +1,16 @@
 package com.saveme.ledger.controller;
 
 
+import com.saveme.consumption.dto.response.InventoryResponseDto;
+import com.saveme.consumption.service.InventoryQueryService;
+import com.saveme.ledger.domain.Income;
 import com.saveme.ledger.dto.response.BudgetDashboardResponseDto;
 import com.saveme.ledger.service.query.BudgetQueryService;
 import com.saveme.ledger.service.query.CategoryQueryService;
 import com.saveme.ledger.service.query.ExpenseQueryService;
 import com.saveme.ledger.service.query.FixedCostQueryService;
 import com.saveme.ledger.service.query.IncomeQueryService;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -20,6 +24,9 @@ public class LedgerController {
     private final ExpenseQueryService expenseQueryService;
     private final CategoryQueryService categoryQueryService;
     private final BudgetQueryService budgetQueryService;
+    private final InventoryQueryService inventoryQueryService;
+    private final FixedCostQueryService fixedCostQueryService;
+    private final IncomeQueryService incomeQueryService;
 
     private static final Long MEMBER_ID = 1L;
 
@@ -35,17 +42,27 @@ public class LedgerController {
         return "ledger/main";
     }
 
-    /**
-     * 현재 미구현
-     */
-    @GetMapping("/fridge")
-    public String fridge() {
-        return "ledger/fridge";
+    @GetMapping("/fixed-costs")
+    public String fixedCostList(Model model) {
+        model.addAttribute("fixedCosts", fixedCostQueryService.getFixedCosts(MEMBER_ID));
+        model.addAttribute("rootCategories", categoryQueryService.getRootCategories());
+        return "ledger/fixed-costs";
     }
 
-    /**
-     * 현재 미구현
-     */
+    @GetMapping("/incomes")
+    public String incomeList(Model model) {
+        model.addAttribute("incomes", incomeQueryService.getAllIncomes(MEMBER_ID));
+        model.addAttribute("incomeTypes", Income.IncomeType.values());
+        return "ledger/incomes";
+    }
+
+    @GetMapping("/fridge")
+    public String fridgeMain(Model model) {
+        List<InventoryResponseDto> items = inventoryQueryService.getMyFridge(MEMBER_ID);
+        model.addAttribute("items", items);
+        return "consumption/fridge";
+    }
+
     @GetMapping("/statistics")
     public String statistics() {
         return "ledger/statistics";
