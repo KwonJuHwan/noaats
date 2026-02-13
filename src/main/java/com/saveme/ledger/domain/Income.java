@@ -22,6 +22,7 @@ public class Income {
     @Column(nullable = false)
     private Long amount;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     private IncomeType incomeType;
 
