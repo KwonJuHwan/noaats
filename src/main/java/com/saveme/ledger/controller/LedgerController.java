@@ -47,14 +47,14 @@ public class LedgerController {
 
     @GetMapping("/fixed-costs")
     public String fixedCostList(Model model) {
-        model.addAttribute("fixedCosts", fixedCostQueryService.getFixedCosts(MEMBER_ID));
+        model.addAttribute("fixedCosts", fixedCostQueryService.getFixedCostsOrderByAmount(MEMBER_ID));
         model.addAttribute("rootCategories", categoryQueryService.getRootCategories());
         return "ledger/fixed-costs";
     }
 
     @GetMapping("/incomes")
     public String incomeList(Model model) {
-        model.addAttribute("incomes", incomeQueryService.getAllIncomes(MEMBER_ID));
+        model.addAttribute("incomes", incomeQueryService.getIncomesOrderByAmount(MEMBER_ID));
         model.addAttribute("incomeTypes", Income.IncomeType.values());
         return "ledger/incomes";
     }
