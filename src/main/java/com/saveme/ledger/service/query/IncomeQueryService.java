@@ -19,8 +19,8 @@ public class IncomeQueryService {
 
     private final IncomeRepository incomeRepository;
 
-    public List<IncomeResponseDto> getAllIncomes(Long memberId) {
-        return incomeRepository.findAllByMemberIdOrderByDateDesc(memberId).stream()
+    public List<IncomeResponseDto> getIncomesOrderByAmount(Long memberId) {
+        return incomeRepository.findAllByMemberIdOrderByAmountDesc(memberId).stream()
             .map(IncomeResponseDto::new)
             .toList();
     }

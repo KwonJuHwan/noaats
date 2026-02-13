@@ -8,6 +8,6 @@ import java.util.List;
 
 public interface IncomeRepository extends JpaRepository<Income, Long>, IncomeRepositoryCustom {
 
-    List<Income> findAllByMemberIdOrderByDateDesc(Long memberId);
+    List<Income> findAllByMemberIdOrderByAmountDesc(Long memberId);
 
 }
