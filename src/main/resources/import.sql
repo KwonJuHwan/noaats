@@ -179,7 +179,8 @@ INSERT INTO expense (expense_id, member_id, category_id, amount, spent_at, memo,
 
 -- 2/8 (일)
 INSERT INTO expense (expense_id, member_id, category_id, amount, spent_at, memo, is_fixed, is_impulse) VALUES (76, 1, 11, 24000, '2026-02-08 13:00:00', '점심 찜닭', false, false);
-
+INSERT INTO expense (expense_id, member_id, category_id, amount, spent_at, memo, is_fixed, is_impulse) VALUES (90, 1, 12, 15000, '2026-02-8 19:10:00', '마늘', false, false);
+INSERT INTO inventory (inventory_id, member_id, expense_id, name, purchase_date, expiry_date, status) VALUES (6, 1, 90, '마늘', '2026-02-13', '2026-02-27', 'IN_STORE');
 -- 2/9 (월)
 INSERT INTO expense (expense_id, member_id, category_id, amount, spent_at, memo, is_fixed, is_impulse) VALUES (77, 1, 13, 4500, '2026-02-09 12:30:00', '점심 커피', false, false);
 INSERT INTO expense (expense_id, member_id, category_id, amount, spent_at, memo, is_fixed, is_impulse) VALUES (78, 1, 15, 10000, '2026-02-09 12:30:00', '점심 찌개', false, false);
@@ -187,8 +188,10 @@ INSERT INTO expense (expense_id, member_id, category_id, amount, spent_at, memo,
 
 -- 2/10 (화): 장보기
 INSERT INTO expense (expense_id, member_id, category_id, amount, spent_at, memo, is_fixed, is_impulse) VALUES (80, 1, 15, 12000, '2026-02-10 12:30:00', '점심 곰탕', false, false);
-INSERT INTO expense (expense_id, member_id, category_id, amount, spent_at, memo, is_fixed, is_impulse) VALUES (81, 1, 12, 15000, '2026-02-10 19:00:00', '두부/콩나물', false, false);
-INSERT INTO inventory (inventory_id, member_id, expense_id, name, purchase_date, expiry_date, status) VALUES (5, 1, 81, '콩나물/두부', '2026-02-10', '2026-02-13', 'IN_STORE'); -- 임박/만료
+INSERT INTO expense (expense_id, member_id, category_id, amount, spent_at, memo, is_fixed, is_impulse) VALUES (81, 1, 12, 15000, '2026-02-10 19:00:00', '콩나물', false, false);
+INSERT INTO inventory (inventory_id, member_id, expense_id, name, purchase_date, expiry_date, status) VALUES (5, 1, 81, '콩나물', '2026-02-10', '2026-02-20', 'IN_STORE');
+INSERT INTO expense (expense_id, member_id, category_id, amount, spent_at, memo, is_fixed, is_impulse) VALUES (91, 1, 12, 15000, '2026-02-10 19:00:00', '두부', false, false);
+INSERT INTO inventory (inventory_id, member_id, expense_id, name, purchase_date, expiry_date, status) VALUES (7, 1, 91, '두부', '2026-02-10', '2026-02-25', 'IN_STORE');
 
 -- 2/11 (수)
 INSERT INTO expense (expense_id, member_id, category_id, amount, spent_at, memo, is_fixed, is_impulse) VALUES (82, 1, 13, 4500, '2026-02-11 08:30:00', '수요일 커피', false, false);
