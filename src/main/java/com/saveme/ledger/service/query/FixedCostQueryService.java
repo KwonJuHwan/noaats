@@ -21,8 +21,8 @@ public class FixedCostQueryService {
     }
 
     @Transactional(readOnly = true)
-    public List<FixedCostResponseDto> getFixedCosts(Long memberId) {
-        List<FixedCost> fixedCosts = fixedCostRepository.findByMemberId(memberId);
+    public List<FixedCostResponseDto> getFixedCostsOrderByAmount(Long memberId) {
+        List<FixedCost> fixedCosts = fixedCostRepository.findAllByMemberIdOrderByAmountDesc(memberId);
 
         return fixedCosts.stream()
             .map(FixedCostResponseDto::from)
