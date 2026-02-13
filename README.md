@@ -1,7 +1,9 @@
 💸 SaveME (세이브미)
+
 "소 잃고 외양간 고치는 가계부는 그만, 쓰기 전에 막아주는 생존 가계부"
 
 📖 Introduction
+
 노아에이티에스 사전과제인 웹 프로토타입입니다.
 
 선정 주제: 지출 관리 및 예산 (Expense Management & Budget)
